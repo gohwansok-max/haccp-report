@@ -174,13 +174,11 @@
           <span id="sttStatusText" class="text-[10px] text-slate-400 bg-brand-dark px-2 py-0.5 rounded-full border border-brand-accent/30">대기 중</span>
         </div>
 
-        <!-- STT 로그 뷰어 -->
-        <div class="flex-grow bg-brand-dark border border-brand-accent/40 rounded-xl p-3 mb-4 overflow-y-auto flex flex-col justify-between">
-          <div id="sttLogArea" class="space-y-2 text-sm text-slate-300 max-h-[220px] overflow-y-auto">
-            <p class="text-slate-500 italic text-xs text-center py-6">마이크 버튼을 누르고 말씀하시면 현장 발언이 실시간 텍스트로 기록됩니다.</p>
-          </div>
-          <!-- 실시간 말하고 있는 임시 텍스트 표시 -->
-          <div id="sttInterim" class="text-brand-primary font-medium text-xs italic mt-2 min-h-[16px]"></div>
+        <!-- STT 로그 뷰어 (수동 타이핑 겸용 큼직한 Textarea로 변경) -->
+        <div class="flex-grow bg-brand-dark border border-brand-accent/40 rounded-xl p-3 mb-4 flex flex-col justify-between overflow-hidden">
+          <textarea id="sttLogArea" class="w-full flex-grow bg-transparent border-0 focus:ring-0 outline-none text-slate-200 text-sm leading-relaxed resize-none p-1 placeholder-slate-500" placeholder="이곳에 직접 현장 코칭 내용을 타이핑하시거나, 왼쪽의 [녹음 시작] 버튼을 누르고 말씀하시면 실시간으로 누적됩니다."></textarea>
+          <!-- 실시간 음성 수집 중 임시 텍스트(STT 보조) 표시 -->
+          <div id="sttInterim" class="text-brand-primary font-medium text-xs italic mt-1 min-h-[16px]"></div>
         </div>
 
         <!-- 녹음 및 텍스트 적용 컨트롤러 -->
@@ -870,35 +868,10 @@
           }
         }
 
-        // Render to log logArea
-        renderSttLog(finalTranscript);
+        DOM.sttLogArea.value = finalTranscript;
         DOM.sttInterim.textContent = interimTranscript;
-        
-        // Auto scroll down
         DOM.sttLogArea.scrollTop = DOM.sttLogArea.scrollHeight;
       };
-    }
-
-    function renderSttLog(text) {
-      if (!text.trim()) {
-        DOM.sttLogArea.innerHTML = `<p class="text-slate-500 italic text-xs text-center py-6">마이크 버튼을 누르고 말씀하시면 현장 발언이 실시간 텍스트로 기록됩니다.</p>`;
-        return;
-      }
-      
-      DOM.sttLogArea.innerHTML = `
-        <div class="relative group">
-          <textarea id="editableSttText" class="w-full bg-transparent border-0 focus:ring-0 outline-none text-slate-200 text-sm leading-relaxed resize-none p-1 min-h-[120px]">${escapeHtml(text)}</textarea>
-          <div class="absolute bottom-1 right-1 opacity-60 text-[10px] text-slate-500"><i class="fa-solid fa-pen mr-1"></i>직접 편집 가능</div>
-        </div>
-      `;
-      
-      // Auto sync edits in log view back to finalTranscript
-      const textNode = document.getElementById('editableSttText');
-      if (textNode) {
-        textNode.addEventListener('input', (e) => {
-          finalTranscript = e.target.value;
-        });
-      }
     }
 
     function stopRecordingState() {
@@ -922,21 +895,26 @@
         recognition.stop();
         stopRecordingState();
       } else {
-        finalTranscript = DOM.sttLogArea.querySelector('textarea')?.value || "";
+        finalTranscript = DOM.sttLogArea.value || "";
         recognition.start();
       }
     });
 
+    // Sync manual text changes back to finalTranscript
+    DOM.sttLogArea.addEventListener('input', (e) => {
+      finalTranscript = e.target.value;
+    });
+
     DOM.clearSttBtn.addEventListener('click', () => {
       finalTranscript = "";
+      DOM.sttLogArea.value = "";
       DOM.sttInterim.textContent = "";
-      renderSttLog("");
       showToast("기록이 초기화되었습니다.", "info");
     });
 
     // Send to Purpose flow
     DOM.sendToPurposeBtn.addEventListener('click', () => {
-      const activeText = DOM.sttLogArea.querySelector('textarea')?.value || "";
+      const activeText = DOM.sttLogArea.value || "";
       if (!activeText.trim()) {
         showToast("목적으로 지정할 텍스트가 없습니다.", "error");
         return;
@@ -954,7 +932,7 @@
 
     // Send to Table flow
     DOM.sendToTableBtn.addEventListener('click', () => {
-      const activeText = DOM.sttLogArea.querySelector('textarea')?.value || "";
+      const activeText = DOM.sttLogArea.value || "";
       if (!activeText.trim()) {
         showToast("추가할 텍스트가 없습니다. 녹음을 먼저 진행해 주세요.", "error");
         return;
@@ -1020,7 +998,7 @@
     };
 
     DOM.aiAnalyzeBtn.addEventListener('click', async () => {
-      const rawText = DOM.sttLogArea.querySelector('textarea')?.value || DOM.sttInterim.textContent || "";
+      const rawText = DOM.sttLogArea.value || DOM.sttInterim.textContent || "";
       if (!rawText.trim() || rawText.includes("마이크 버튼을 누르고 말씀하시면")) {
         showToast("분석할 녹음 텍스트가 없습니다.", "error");
         return;
