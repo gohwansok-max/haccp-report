@@ -534,10 +534,22 @@
       // Render Tables
       renderTables();
       
-      // Initialize Camera and STT
-      initCamera();
-      initSpeechRecognition();
-      initWakeLock();
+      // Initialize Camera and STT safely
+      try {
+        initCamera();
+      } catch (e) {
+        console.error("Camera initialization failed:", e);
+      }
+      try {
+        initSpeechRecognition();
+      } catch (e) {
+        console.error("STT initialization failed:", e);
+      }
+      try {
+        initWakeLock();
+      } catch (e) {
+        console.error("WakeLock initialization failed:", e);
+      }
       
       // Load PWA Service Worker
       registerServiceWorker();
@@ -640,6 +652,12 @@
 
     async function initCamera() {
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+          console.warn("navigator.mediaDevices is not available.");
+          DOM.cameraEmptyState.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-2xl text-amber-500 animate-bounce-slow"></i><p class="mt-2 text-slate-400">보안 연결(HTTPS) 환경이 아니거나 기기가 지원하지 않아 카메라를 초기화할 수 없습니다.</p>`;
+          DOM.cameraEmptyState.classList.remove('hidden');
+          return;
+        }
         const devices = await navigator.mediaDevices.enumerateDevices();
         availableCameras = devices.filter(device => device.kind === 'videoinput');
         
