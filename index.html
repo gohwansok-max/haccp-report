@@ -798,7 +798,12 @@
         thumb.className = "relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-brand-accent/50 group";
         thumb.innerHTML = `
           <img src="${photo}" class="w-full h-full object-cover">
-          <button onclick="deletePhoto(${index})" class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white text-[8px] hover:bg-red-800 transition-colors shadow">
+          <!-- 갤러리 저장용 개별 다운로드 버튼 -->
+          <button onclick="downloadSinglePhoto(${index})" class="absolute bottom-0.5 right-0.5 w-4 h-4 bg-brand-primary rounded-full flex items-center justify-center text-brand-dark text-[8px] hover:bg-cyan-400 transition-colors shadow-md border border-white/20" title="갤러리에 저장">
+            <i class="fa-solid fa-download"></i>
+          </button>
+          <!-- 삭제 버튼 -->
+          <button onclick="deletePhoto(${index})" class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white text-[8px] hover:bg-red-800 transition-colors shadow-md border border-white/20" title="삭제">
             <i class="fa-solid fa-xmark"></i>
           </button>
         `;
@@ -810,6 +815,23 @@
       state.capturedPhotos.splice(index, 1);
       renderThumbnails();
       showToast("사진이 삭제되었습니다.", "info");
+    };
+
+    window.downloadSinglePhoto = function(index) {
+      const photoData = state.capturedPhotos[index];
+      if (!photoData) return;
+      
+      const a = document.createElement("a");
+      a.href = photoData;
+      
+      const dateStr = state.consultingDate.replace(/-/g, "");
+      a.download = `HACCP_Photo_${dateStr}_${index + 1}.jpg`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      showToast(`사진 ${index + 1}이 스마트폰 갤러리에 저장(다운로드)되었습니다.`, "success");
     };
 
     // --- STT ENGINE (Web Speech API) ---
