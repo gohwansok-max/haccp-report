@@ -90,7 +90,7 @@
       </div>
     </div>
     
-    <!-- PWA Install Button & WakeLock Status -->
+    <!-- PWA Install Button & WakeLock Status & AI Setting -->
     <div class="flex items-center space-x-2">
       <div id="wakeLockBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary flex items-center space-x-1 animate-pulse">
         <i class="fa-solid fa-sun text-[8px]"></i>
@@ -98,6 +98,10 @@
       </div>
       <button id="pwaInstallBtn" class="hidden px-3 py-1.5 rounded-lg text-xs bg-brand-primary text-brand-dark font-bold hover:scale-105 transition-all shadow-md shadow-brand-primary/20">
         <i class="fa-solid fa-download mr-1"></i> 앱 설치
+      </button>
+      <!-- AI Settings Gear -->
+      <button id="aiSettingsBtn" class="p-2 rounded-xl bg-brand-dark border border-brand-accent/50 text-slate-400 hover:text-brand-primary transition-all" title="AI API 설정">
+        <i class="fa-solid fa-key"></i>
       </button>
     </div>
   </header>
@@ -181,10 +185,16 @@
 
         <!-- 녹음 및 텍스트 적용 컨트롤러 -->
         <div class="flex flex-col space-y-2">
-          <button id="sttRecordBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-bold text-sm shadow-lg shadow-red-900/30 flex items-center justify-center space-x-2 transition-all duration-200">
-            <i id="sttRecordIcon" class="fa-solid fa-microphone"></i>
-            <span id="sttRecordText">녹음 시작</span>
-          </button>
+          <div class="flex space-x-2">
+            <button id="sttRecordBtn" class="flex-grow py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-bold text-sm shadow-lg shadow-red-900/30 flex items-center justify-center space-x-2 transition-all duration-200">
+              <i id="sttRecordIcon" class="fa-solid fa-microphone"></i>
+              <span id="sttRecordText">녹음 시작</span>
+            </button>
+            <button id="aiAnalyzeBtn" class="py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-900/30 flex items-center justify-center space-x-2 transition-all duration-200" title="Gemini AI 자동 분석 및 작성">
+              <i class="fa-solid fa-wand-magic-sparkles text-brand-primary"></i>
+              <span>AI 분석</span>
+            </button>
+          </div>
           
           <div class="flex items-center justify-between space-x-2">
             <button id="sendToPurposeBtn" class="flex-grow py-2.5 px-3 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-xs border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="컨설팅 목적으로 지정">
@@ -356,6 +366,38 @@
     </div>
   </div>
 
+  <!-- AI 설정 모달 창 -->
+  <div id="aiSettingsModal" class="fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-brand-card border border-brand-accent/30 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-brand-accent/20 pb-2">
+        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+          <i class="fa-solid fa-key text-brand-primary"></i>
+          <span>Gemini AI API 설정</span>
+        </h3>
+        <button onclick="closeAiSettingsModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-400 leading-relaxed">
+          녹음 내용을 고환석 컨설턴트 톤으로 자동 분석하기 위해 Google Gemini API Key가 필요합니다. 
+          키는 브라우저 내부 로컬 저장소(localStorage)에 안전하게 저장됩니다.
+        </p>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">Gemini API Key</label>
+          <input id="aiApiKeyInput" type="password" class="bg-brand-dark border border-brand-accent text-brand-text rounded-lg p-2.5 w-full outline-none focus:border-brand-primary" placeholder="AIZAaSy...">
+        </div>
+        <div class="text-[10px] text-slate-500">
+          * 구글 AI 스튜디오에서 무료 API 키를 발급받으실 수 있습니다.
+        </div>
+      </div>
+      
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeAiSettingsModal()" class="px-4 py-2 rounded-lg bg-brand-dark border border-brand-accent hover:bg-slate-800 text-slate-400 text-xs font-semibold">닫기</button>
+        <button onclick="saveAiSettings()" class="px-4 py-2 rounded-lg bg-brand-primary text-brand-dark text-xs font-bold shadow-md shadow-brand-primary/20">저장하기</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // --- APP STATE ---
     const state = {
@@ -400,6 +442,10 @@
       sendToPurposeBtn: document.getElementById('sendToPurposeBtn'),
       sendToTableBtn: document.getElementById('sendToTableBtn'),
       clearSttBtn: document.getElementById('clearSttBtn'),
+      aiSettingsBtn: document.getElementById('aiSettingsBtn'),
+      aiSettingsModal: document.getElementById('aiSettingsModal'),
+      aiApiKeyInput: document.getElementById('aiApiKeyInput'),
+      aiAnalyzeBtn: document.getElementById('aiAnalyzeBtn'),
       
       cameraVideo: document.getElementById('cameraVideo'),
       cameraCaptureBtn: document.getElementById('cameraCaptureBtn'),
@@ -929,6 +975,172 @@
       closeSttModal();
       showToast("STT 기록이 점검 내용에 반영되었습니다.", "success");
       
+      // Auto scroll down to details
+      DOM.mobileCardContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // --- AI ANALYSIS & SETTINGS EVENTS ---
+    DOM.aiSettingsBtn.addEventListener('click', () => {
+      DOM.aiApiKeyInput.value = localStorage.getItem('GEMINI_API_KEY') || "";
+      DOM.aiSettingsModal.classList.remove('opacity-0', 'pointer-events-none');
+    });
+    
+    window.closeAiSettingsModal = function() {
+      DOM.aiSettingsModal.classList.add('opacity-0', 'pointer-events-none');
+    };
+    
+    window.saveAiSettings = function() {
+      const key = DOM.aiApiKeyInput.value.trim();
+      if (!key) {
+        localStorage.removeItem('GEMINI_API_KEY');
+        showToast("API 키가 삭제되었습니다. 오프라인 모드로 분석이 진행됩니다.", "info");
+      } else {
+        localStorage.setItem('GEMINI_API_KEY', key);
+        showToast("Gemini API 키가 저장되었습니다.", "success");
+      }
+      closeAiSettingsModal();
+    };
+
+    DOM.aiAnalyzeBtn.addEventListener('click', async () => {
+      const rawText = DOM.sttLogArea.querySelector('textarea')?.value || DOM.sttInterim.textContent || "";
+      if (!rawText.trim() || rawText.includes("마이크 버튼을 누르고 말씀하시면")) {
+        showToast("분석할 녹음 텍스트가 없습니다.", "error");
+        return;
+      }
+      
+      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      
+      DOM.aiAnalyzeBtn.disabled = true;
+      const originalBtnHtml = DOM.aiAnalyzeBtn.innerHTML;
+      DOM.aiAnalyzeBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i><span>분석 중...</span>`;
+      
+      try {
+        let result;
+        if (apiKey) {
+          result = await analyzeTextWithGemini(rawText, apiKey);
+        } else {
+          showToast("API 키가 없어 간이 분석(로컬 엔진)을 수행합니다.", "info");
+          result = runFallbackParser(rawText);
+        }
+        
+        applyAnalysisResult(result);
+        showToast("AI 분석 결과가 보고서에 반영되었습니다.", "success");
+        
+      } catch (err) {
+        console.error("AI Analysis Error: ", err);
+        showToast("AI 분석 실패. 간이 분석 결과로 대체합니다.", "error");
+        const result = runFallbackParser(rawText);
+        applyAnalysisResult(result);
+      } finally {
+        DOM.aiAnalyzeBtn.disabled = false;
+        DOM.aiAnalyzeBtn.innerHTML = originalBtnHtml;
+      }
+    });
+
+    async function analyzeTextWithGemini(rawText, apiKey) {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      
+      const systemPrompt = `당신은 식품안전 및 품질관리(HACCP) 정기 컨설팅 보고서 작성기 AI입니다.
+현장 코칭 중 녹음된 한국어 텍스트(STT 로그)가 주어집니다. 이를 철저히 분석하여 다음 5가지 항목을 HACCP 컨설턴트 고환석의 전문적인 톤앤매너로 재구성하고 요약하세요.
+반드시 지정된 JSON 스키마 형식으로 응답해야 합니다.
+
+[작성 지침]
+1. purpose (컨설팅 목적): 현장 대화 내용에서 이번 컨설팅의 핵심 목적을 1줄(30자 내외)로 명확히 작성하세요. 명사형(예: ~ 점검 및 ~ 지도)으로 종결합니다.
+2. area (진단 서류 및 영역): 대화에서 가장 큰 지적 사항이나 진단한 핵심 대상(예: 위해요소분석표, 개인위생 일지, 작업장 평면도 등)을 파악하여 15자 내외로 작성하세요.
+3. check (점검 내용): 현장에서 지적된 구체적인 문제점과 미흡 사항을 서식용 문어체(현황 및 문제점)로 작성하세요.
+4. action (개선 지도 사항): 지적된 문제점을 완벽하게 시정할 수 있는 전문적인 개선 조치 권고 사항을 작성하세요.
+5. summary (총평): 전체 내용을 아우르는 핵심 요약 총평입니다. 반드시 다음 형식으로 3가지 핵심 포인트를 불릿 기호(•)와 줄바꿈(\\n)으로 나누어 작성하세요.
+예시:
+• [현황] 금일 컨설팅은 문서 체계 전수 진단을 실시함.
+• [미흡 사항] 일부 기록 서명 누락이 발견되어 보완이 시급함.
+• [지도 방안] 현장에 맞지 않는 화학적 검사 항목을 슬림화하도록 권고함.
+
+[STT 원본 텍스트]
+${rawText}`;
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                purpose: { type: "STRING" },
+                area: { type: "STRING" },
+                check: { type: "STRING" },
+                action: { type: "STRING" },
+                summary: { type: "STRING" }
+              },
+              required: ["purpose", "area", "check", "action", "summary"]
+            }
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API HTTP error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const textResponse = data.candidates[0].content.parts[0].text;
+      return JSON.parse(textResponse);
+    }
+
+    function runFallbackParser(text) {
+      const cleaned = text.trim();
+      const sentences = cleaned.split(/[.\n]/).map(s => s.trim()).filter(Boolean);
+      const purpose = sentences[0] ? sentences[0] + " 점검 및 지도" : "현장 위생 및 서류 상태 점검";
+      
+      let area = "현장 위생 및 서류 점검";
+      const keywords = [
+        { key: "위해요소", val: "위해요소분석표" },
+        { key: "기준서", val: "HACCP 관리 기준서" },
+        { key: "인수인계", val: "업무 인수인계 지침" },
+        { key: "모니터링", val: "환경 모니터링 배치도" },
+        { key: "평면도", val: "작업장 평면도 (7.3)" },
+        { key: "위생", val: "개인위생 일지 및 위생 시설" },
+        { key: "화학", val: "화학적 위해요소 근거" },
+        { key: "생물", val: "생물학적 위해요소 근거" }
+      ];
+      
+      for (const kw of keywords) {
+        if (cleaned.includes(kw.key)) {
+          area = kw.val;
+          break;
+        }
+      }
+      
+      const check = cleaned.length > 150 ? cleaned.substring(0, 150) + "..." : cleaned;
+      const action = "현장 지적 사항 이행 및 향후 관리에 대한 기준서 보완 조치 권고";
+      
+      const summary = `• [현황] 실시간 현장 코칭을 기록하고 서류를 진단함.
+• [미흡 사항] 세부 지적 사항은 테이블에 반영되었으며 보완 조치가 권고됨.
+• [지도 방안] 기록의 추적성을 높이고 현장에 맞는 실질적인 양식 개정을 권장함.`;
+
+      return { purpose, area, check, action, summary };
+    }
+
+    function applyAnalysisResult(data) {
+      DOM.infoPurpose.value = data.purpose;
+      state.purpose = data.purpose;
+      
+      state.tableData.push({
+        no: state.tableData.length + 1,
+        area: data.area,
+        check: data.check,
+        action: data.action
+      });
+      renderTables();
+      
+      DOM.opinionSummary.value = data.summary;
+      state.opinionSummary = data.summary;
+    }
+
       // Auto scroll down to details
       DOM.mobileCardContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
     };
