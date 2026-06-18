@@ -1,0 +1,24 @@
+{
+  "name": "HACCP 컨설턴트 보고서 작성기",
+  "short_name": "HACCP 컨설턴트",
+  "description": "식품안전 및 품질관리 정기 컨설팅 현장 코칭 및 보고서 생성 앱",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0B132B",
+  "theme_color": "#1C2541",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3076/3076404.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3076/3076404.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

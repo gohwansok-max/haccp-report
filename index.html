@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HACCP 및 품질관리 정기 컨설팅 결과 보고서 작성기</title>
+  
+  <!-- PWA Manifest & Theme Color -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1C2541">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- Tailwind CSS & FontAwesome Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts: Pretendard -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  
+  <!-- docx.js library (for word generation) -->
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#0B132B',
+              card: '#1C2541',
+              primary: '#00F0FF',
+              secondary: '#6E00FF',
+              accent: '#3A506B',
+              text: '#F1F5F9'
+            }
+          },
+          animation: {
+            'pulse-cyan': 'pulseCyan 2s infinite',
+            'bounce-slow': 'bounce 3s infinite',
+          },
+          keyframes: {
+            pulseCyan: {
+              '0%, 100%': { boxShadow: '0 0 0 0 rgba(0, 240, 255, 0.4)' },
+              '50%': { boxShadow: '0 0 0 15px rgba(0, 240, 255, 0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+      font-family: 'Pretendard', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0B132B;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3A506B;
+      border-radius: 10px;
+    }
+    /* Speech text area auto-scroll styling */
+    #sttLogArea {
+      scroll-behavior: smooth;
+    }
+  </style>
+</head>
+<body class="bg-brand-dark text-brand-text min-h-screen flex flex-col pb-24">
+
+  <!-- Header -->
+  <header class="bg-brand-card/85 backdrop-blur-md border-b border-brand-accent/30 sticky top-0 z-40 px-4 py-3 shadow-lg flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-xl flex items-center justify-center shadow-md shadow-brand-primary/20">
+        <i class="fa-solid fa-clipboard-check text-brand-dark text-lg font-bold"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-white leading-tight">HACCP & 품질관리</h1>
+        <p class="text-[10px] text-brand-primary font-semibold tracking-wider uppercase">Coaching Report Creator</p>
+      </div>
+    </div>
+    
+    <!-- PWA Install Button & WakeLock Status -->
+    <div class="flex items-center space-x-2">
+      <div id="wakeLockBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary flex items-center space-x-1 animate-pulse">
+        <i class="fa-solid fa-sun text-[8px]"></i>
+        <span>화면 켬</span>
+      </div>
+      <button id="pwaInstallBtn" class="hidden px-3 py-1.5 rounded-lg text-xs bg-brand-primary text-brand-dark font-bold hover:scale-105 transition-all shadow-md shadow-brand-primary/20">
+        <i class="fa-solid fa-download mr-1"></i> 앱 설치
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
+
+    <!-- 1. 컨설팅 기본 정보 섹션 -->
+    <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center space-x-2 mb-4 border-b border-brand-accent/30 pb-2">
+        <i class="fa-solid fa-circle-info text-brand-primary"></i>
+        <h2 class="text-sm font-bold text-white tracking-wide">1. 컨설팅 기본 정보 입력</h2>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 대상 기관 -->
+        <div>
+          <label class="block text-xs text-slate-400 font-semibold mb-1">대상 기관</label>
+          <div class="relative">
+            <select id="infoTargetOrgSelect" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm appearance-none pr-10">
+              <option value="동김제농협농산물가공센터">동김제농협농산물가공센터</option>
+              <option value="직접입력">직접 입력...</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+          <input id="infoTargetOrgInput" type="text" class="hidden mt-2 bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" placeholder="기관명 직접 입력">
+        </div>
+
+        <!-- 수행 일자 -->
+        <div>
+          <label class="block text-xs text-slate-400 font-semibold mb-1">수행 일자</label>
+          <input id="infoDate" type="date" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm">
+        </div>
+
+        <!-- 수행 시간 -->
+        <div>
+          <label class="block text-xs text-slate-400 font-semibold mb-1">수행 시간</label>
+          <div class="flex items-center space-x-2">
+            <input id="infoTimeStart" type="time" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" value="07:00">
+            <span class="text-slate-500">~</span>
+            <input id="infoTimeEnd" type="time" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" value="08:50">
+          </div>
+        </div>
+
+        <!-- 컨설턴트 정보 -->
+        <div>
+          <label class="block text-xs text-slate-400 font-semibold mb-1">컨설턴트</label>
+          <input id="infoConsultant" type="text" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" value="고환석 (식품안전·품질관리 전문가 / 식품생명공학 석사 / 식품 대기업 20년 근무)">
+        </div>
+
+        <!-- 컨설팅 목적 (Full Width) -->
+        <div class="md:col-span-2">
+          <label class="block text-xs text-slate-400 font-semibold mb-1">컨설팅 목적</label>
+          <textarea id="infoPurpose" rows="2" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" placeholder="음성 기록에서 목적을 발췌하거나 직접 입력하세요."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- 중앙부: STT 녹음 제어 & 내장 카메라 촬영 레이아웃 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      
+      <!-- 중앙 왼쪽: STT 녹음 제어 컨트롤러 -->
+      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[400px]">
+        <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-microphone text-brand-primary"></i>
+            <h2 class="text-sm font-bold text-white tracking-wide">2. 실시간 현장 코칭 녹음 (STT)</h2>
+          </div>
+          <span id="sttStatusText" class="text-[10px] text-slate-400 bg-brand-dark px-2 py-0.5 rounded-full border border-brand-accent/30">대기 중</span>
+        </div>
+
+        <!-- STT 로그 뷰어 -->
+        <div class="flex-grow bg-brand-dark border border-brand-accent/40 rounded-xl p-3 mb-4 overflow-y-auto flex flex-col justify-between">
+          <div id="sttLogArea" class="space-y-2 text-sm text-slate-300 max-h-[220px] overflow-y-auto">
+            <p class="text-slate-500 italic text-xs text-center py-6">마이크 버튼을 누르고 말씀하시면 현장 발언이 실시간 텍스트로 기록됩니다.</p>
+          </div>
+          <!-- 실시간 말하고 있는 임시 텍스트 표시 -->
+          <div id="sttInterim" class="text-brand-primary font-medium text-xs italic mt-2 min-h-[16px]"></div>
+        </div>
+
+        <!-- 녹음 및 텍스트 적용 컨트롤러 -->
+        <div class="flex flex-col space-y-2">
+          <button id="sttRecordBtn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-bold text-sm shadow-lg shadow-red-900/30 flex items-center justify-center space-x-2 transition-all duration-200">
+            <i id="sttRecordIcon" class="fa-solid fa-microphone"></i>
+            <span id="sttRecordText">녹음 시작</span>
+          </button>
+          
+          <div class="flex items-center justify-between space-x-2">
+            <button id="sendToPurposeBtn" class="flex-grow py-2.5 px-3 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-xs border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="컨설팅 목적으로 지정">
+              <i class="fa-solid fa-bullseye text-brand-primary"></i>
+              <span>목적 지정</span>
+            </button>
+            <button id="sendToTableBtn" class="flex-grow py-2.5 px-3 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-xs border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="점검 테이블에 행 추가">
+              <i class="fa-solid fa-arrow-right-to-bracket text-brand-primary"></i>
+              <span>테이블 전송</span>
+            </button>
+            <button id="clearSttBtn" class="p-2.5 rounded-xl bg-brand-dark border border-brand-accent text-slate-400 hover:text-white hover:bg-slate-800 transition-all" title="기록 초기화">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 중앙 오른쪽: 내장 카메라 프리뷰 및 촬영 -->
+      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[400px]">
+        <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-camera text-brand-primary"></i>
+            <h2 class="text-sm font-bold text-white tracking-wide">3. 현장 점검 사진 촬영 (내장)</h2>
+          </div>
+          <!-- 카메라 목록 셀렉터 -->
+          <select id="cameraSourceSelect" class="text-[10px] bg-brand-dark border border-brand-accent text-slate-300 rounded px-1.5 py-0.5 outline-none max-w-[120px]">
+            <option value="">카메라 로딩 중...</option>
+          </select>
+        </div>
+
+        <!-- 카메라 뷰 및 썸네일 통합 컨테이너 -->
+        <div class="flex-grow flex flex-col min-h-0 space-y-3">
+          <!-- 비디오 화면 영역 -->
+          <div class="relative flex-grow bg-brand-dark rounded-xl overflow-hidden border border-brand-accent/40 flex items-center justify-center shadow-inner">
+            <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+            <!-- 캡처 플래시 이펙트용 오버레이 -->
+            <div id="flashOverlay" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-100"></div>
+            <!-- 카메라 에러 또는 비권한 안내 -->
+            <div id="cameraEmptyState" class="absolute inset-0 flex flex-col items-center justify-center bg-brand-dark/90 text-slate-500 text-xs p-4 text-center space-y-2 z-10 hidden">
+              <i class="fa-solid fa-camera-rotate text-2xl text-brand-accent animate-bounce-slow"></i>
+              <p>카메라 권한을 승인하거나 후면 카메라를 연결해 주세요.</p>
+            </div>
+            
+            <!-- 촬영 트리거 버튼 (화면 위에 고정) -->
+            <button id="cameraCaptureBtn" class="absolute bottom-3 right-3 w-12 h-12 rounded-full bg-brand-primary text-brand-dark shadow-lg shadow-brand-primary/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-150 border-4 border-white/20 z-20">
+              <i class="fa-solid fa-shutter-button text-lg"></i>
+            </button>
+          </div>
+
+          <!-- 촬영된 사진 썸네일 보관함 (가로 스크롤) -->
+          <div class="h-20 flex-shrink-0">
+            <div id="photoThumbContainer" class="flex space-x-2 overflow-x-auto h-full pb-1 items-center">
+              <p class="text-[11px] text-slate-500 italic text-center w-full">촬영된 현장 사진이 없습니다.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 하단: 정형화 데이터 편집 테이블 -->
+    <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-table-list text-brand-primary"></i>
+          <h2 class="text-sm font-bold text-white tracking-wide">4. 주요 서류 점검 및 지도 내용</h2>
+        </div>
+        <button id="addTableRowBtn" class="px-3 py-1.5 rounded-lg text-xs bg-brand-primary/10 border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/20 font-bold flex items-center space-x-1 transition-all">
+          <i class="fa-solid fa-plus"></i>
+          <span>행 추가</span>
+        </button>
+      </div>
+
+      <!-- 모바일 카드형 / 데스크톱 테이블형 통합 뷰 포트 -->
+      <div class="w-full overflow-x-auto">
+        <!-- 데스크톱용 일반 테이블 뷰 (md 이상 노출) -->
+        <table class="hidden md:table w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="bg-brand-dark border-b border-brand-accent/40 text-slate-300 font-bold uppercase">
+              <th class="p-3 w-12 text-center">No.</th>
+              <th class="p-3 w-[220px]">진단 서류 및 영역</th>
+              <th class="p-3">점검 내용 (현황 및 문제점)</th>
+              <th class="p-3">개선 지도 사항</th>
+              <th class="p-3 w-14 text-center">작업</th>
+            </tr>
+          </thead>
+          <tbody id="desktopTableBody" class="divide-y divide-brand-accent/20">
+            <!-- JS에서 동적 바인딩 -->
+          </tbody>
+        </table>
+
+        <!-- 모바일 최적화 카드 뷰 (md 미만 노출) -->
+        <div id="mobileCardContainer" class="block md:hidden space-y-4">
+          <!-- JS에서 동적 바인딩 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 최하단: 종합 의견 및 향후 계획 -->
+    <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center space-x-2 mb-4 border-b border-brand-accent/30 pb-2">
+        <i class="fa-solid fa-pen-nib text-brand-primary"></i>
+        <h2 class="text-sm font-bold text-white tracking-wide">5. 종합 의견 및 향후 계획</h2>
+      </div>
+
+      <div class="space-y-4">
+        <!-- 총평 -->
+        <div>
+          <label class="block text-xs text-slate-400 font-semibold mb-1">총평</label>
+          <textarea id="opinionSummary" rows="4" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm leading-relaxed" placeholder="총평을 입력하세요."></textarea>
+        </div>
+        
+        <!-- 차후 계획 -->
+        <div>
+          <label class="block text-xs text-slate-400 font-semibold mb-1">차후 계획</label>
+          <textarea id="opinionNextPlan" rows="3" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm leading-relaxed" placeholder="차후 계획을 입력하세요."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- 보고서 다운로드 섹션 -->
+    <section class="flex flex-col items-center py-6">
+      <button id="downloadDocxBtn" class="w-full max-w-md py-4 px-6 rounded-2xl bg-gradient-to-r from-brand-primary to-cyan-500 hover:from-cyan-400 hover:to-brand-primary text-brand-dark font-black text-base shadow-xl shadow-brand-primary/10 hover:shadow-brand-primary/20 flex items-center justify-center space-x-3 transition-all duration-300 transform active:scale-95">
+        <i class="fa-solid fa-file-word text-xl"></i>
+        <span>최종 .docx 결과 보고서 다운로드</span>
+      </button>
+      <p class="text-[10px] text-slate-500 mt-2 text-center">
+        docx.js 엔진을 기반으로 원본 오피스 스타일 표와 서명을 그대로 반영한 워드 문서를 다운로드합니다.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- 오디오 피드백 (셔터 효과용) -->
+  <audio id="shutterAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav" preload="auto"></audio>
+
+  <!-- PWA 토스트 메시지 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brand-card border border-brand-accent/50 text-white text-xs font-semibold px-4 py-3 rounded-full shadow-2xl z-50 transition-all duration-300 opacity-0 scale-95 pointer-events-none flex items-center space-x-2">
+    <span id="toastIcon"><i class="fa-solid fa-info text-brand-primary"></i></span>
+    <span id="toastMessage">메시지 내용</span>
+  </div>
+
+  <!-- STT 행 추가 모달 창 (녹음 텍스트 가공용) -->
+  <div id="sttInsertModal" class="fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-200">
+    <div class="bg-brand-card border border-brand-accent/30 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-brand-accent/20 pb-2">
+        <h3 class="text-sm font-bold text-white">음성 텍스트를 테이블 행으로 추가</h3>
+        <button onclick="closeSttModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">진단 서류 및 영역</label>
+          <input id="modalArea" type="text" class="bg-brand-dark border border-brand-accent text-brand-text rounded-lg p-2.5 w-full outline-none focus:border-brand-primary" placeholder="예: 위해요소분석표, 개인위생 일지">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">점검 내용 (현황 및 문제점)</label>
+          <textarea id="modalCheck" rows="3" class="bg-brand-dark border border-brand-accent text-brand-text rounded-lg p-2.5 w-full outline-none focus:border-brand-primary" placeholder="음성으로 캡처된 원본 텍스트"></textarea>
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold mb-1">개선 지도 사항</label>
+          <textarea id="modalAction" rows="2" class="bg-brand-dark border border-brand-accent text-brand-text rounded-lg p-2.5 w-full outline-none focus:border-brand-primary" placeholder="권고 개선 조치 내용"></textarea>
+        </div>
+      </div>
+      
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeSttModal()" class="px-4 py-2 rounded-lg bg-brand-dark border border-brand-accent hover:bg-slate-800 text-slate-400 text-xs font-semibold">취소</button>
+        <button onclick="confirmSttInsert()" class="px-4 py-2 rounded-lg bg-brand-primary text-brand-dark text-xs font-bold shadow-md shadow-brand-primary/20">추가하기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- APP STATE ---
+    const state = {
+      // 기본 정보
+      targetOrg: "동김제농협농산물가공센터",
+      consultingDate: "2026-06-18",
+      timeStart: "07:00",
+      timeEnd: "08:50",
+      consultant: "고환석 (식품안전·품질관리 전문가 / 식품생명공학 석사 / 식품 대기업 20년 근무)",
+      purpose: "",
+      
+      // 테이블 정형 데이터
+      tableData: [],
+      
+      // 종합 의견
+      opinionSummary: "",
+      opinionNextPlan: "",
+
+      // 캡처 이미지 배열 (base64)
+      capturedPhotos: [],
+      
+      // Wake Lock API 참조
+      wakeLock: null
+    };
+
+    // --- DOM REFERENCES ---
+    const DOM = {
+      infoTargetOrgSelect: document.getElementById('infoTargetOrgSelect'),
+      infoTargetOrgInput: document.getElementById('infoTargetOrgInput'),
+      infoDate: document.getElementById('infoDate'),
+      infoTimeStart: document.getElementById('infoTimeStart'),
+      infoTimeEnd: document.getElementById('infoTimeEnd'),
+      infoConsultant: document.getElementById('infoConsultant'),
+      infoPurpose: document.getElementById('infoPurpose'),
+      
+      sttRecordBtn: document.getElementById('sttRecordBtn'),
+      sttRecordIcon: document.getElementById('sttRecordIcon'),
+      sttRecordText: document.getElementById('sttRecordText'),
+      sttLogArea: document.getElementById('sttLogArea'),
+      sttInterim: document.getElementById('sttInterim'),
+      sttStatusText: document.getElementById('sttStatusText'),
+      sendToPurposeBtn: document.getElementById('sendToPurposeBtn'),
+      sendToTableBtn: document.getElementById('sendToTableBtn'),
+      clearSttBtn: document.getElementById('clearSttBtn'),
+      
+      cameraVideo: document.getElementById('cameraVideo'),
+      cameraCaptureBtn: document.getElementById('cameraCaptureBtn'),
+      cameraEmptyState: document.getElementById('cameraEmptyState'),
+      cameraSourceSelect: document.getElementById('cameraSourceSelect'),
+      photoThumbContainer: document.getElementById('photoThumbContainer'),
+      flashOverlay: document.getElementById('flashOverlay'),
+      shutterAudio: document.getElementById('shutterAudio'),
+      
+      desktopTableBody: document.getElementById('desktopTableBody'),
+      mobileCardContainer: document.getElementById('mobileCardContainer'),
+      addTableRowBtn: document.getElementById('addTableRowBtn'),
+      
+      opinionSummary: document.getElementById('opinionSummary'),
+      opinionNextPlan: document.getElementById('opinionNextPlan'),
+      downloadDocxBtn: document.getElementById('downloadDocxBtn'),
+      
+      wakeLockBadge: document.getElementById('wakeLockBadge'),
+      pwaInstallBtn: document.getElementById('pwaInstallBtn'),
+      
+      toast: document.getElementById('toast'),
+      toastMessage: document.getElementById('toastMessage'),
+      toastIcon: document.getElementById('toastIcon'),
+      
+      sttInsertModal: document.getElementById('sttInsertModal'),
+      modalArea: document.getElementById('modalArea'),
+      modalCheck: document.getElementById('modalCheck'),
+      modalAction: document.getElementById('modalAction')
+    };
+
+    // --- TOAST NOTIFICATION ---
+    function showToast(message, type = 'info') {
+      DOM.toastMessage.textContent = message;
+      if (type === 'success') {
+        DOM.toastIcon.innerHTML = `<i class="fa-solid fa-circle-check text-green-400"></i>`;
+      } else if (type === 'error') {
+        DOM.toastIcon.innerHTML = `<i class="fa-solid fa-circle-exclamation text-red-400"></i>`;
+      } else {
+        DOM.toastIcon.innerHTML = `<i class="fa-solid fa-info text-brand-primary"></i>`;
+      }
+      
+      DOM.toast.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+      DOM.toast.classList.add('opacity-100', 'scale-100');
+      
+      setTimeout(() => {
+        DOM.toast.classList.remove('opacity-100', 'scale-100');
+        DOM.toast.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+      }, 3000);
+    }
+
+    // --- INITIAL DATA SETUP ---
+    function initApp() {
+      // Set default date to today
+      const today = new Date().toISOString().split('T')[0];
+      DOM.infoDate.value = today;
+      state.consultingDate = today;
+      
+      // Bind opinion state
+      DOM.opinionSummary.value = state.opinionSummary;
+      DOM.opinionNextPlan.value = state.opinionNextPlan;
+
+      // Handle custom org input toggle
+      DOM.infoTargetOrgSelect.addEventListener('change', (e) => {
+        if (e.target.value === '직접입력') {
+          DOM.infoTargetOrgInput.classList.remove('hidden');
+          state.targetOrg = "";
+        } else {
+          DOM.infoTargetOrgInput.classList.add('hidden');
+          state.targetOrg = e.target.value;
+        }
+      });
+      
+      DOM.infoTargetOrgInput.addEventListener('input', (e) => {
+        state.targetOrg = e.target.value;
+      });
+
+      // Synchronize basic input elements to state
+      DOM.infoDate.addEventListener('change', (e) => state.consultingDate = e.target.value);
+      DOM.infoTimeStart.addEventListener('change', (e) => state.timeStart = e.target.value);
+      DOM.infoTimeEnd.addEventListener('change', (e) => state.timeEnd = e.target.value);
+      DOM.infoConsultant.addEventListener('input', (e) => state.consultant = e.target.value);
+      DOM.infoPurpose.addEventListener('input', (e) => state.purpose = e.target.value);
+      DOM.opinionSummary.addEventListener('input', (e) => state.opinionSummary = e.target.value);
+      DOM.opinionNextPlan.addEventListener('input', (e) => state.opinionNextPlan = e.target.value);
+
+      // Render Tables
+      renderTables();
+      
+      // Initialize Camera and STT
+      initCamera();
+      initSpeechRecognition();
+      initWakeLock();
+      
+      // Load PWA Service Worker
+      registerServiceWorker();
+    }
+
+    // --- TABLE RENDER LOGIC ---
+    function renderTables() {
+      DOM.desktopTableBody.innerHTML = "";
+      DOM.mobileCardContainer.innerHTML = "";
+      
+      state.tableData.forEach((row, index) => {
+        // Adjust no sequentially
+        row.no = index + 1;
+        
+        // 1. Desktop Row
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-brand-accent/10 transition-colors duration-150 border-b border-brand-accent/10 text-slate-300";
+        tr.innerHTML = `
+          <td class="p-3 text-center font-bold text-slate-400">${row.no}</td>
+          <td class="p-3">
+            <input type="text" value="${escapeHtml(row.area)}" onchange="updateCell(${index}, 'area', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white">
+          </td>
+          <td class="p-3">
+            <textarea onchange="updateCell(${index}, 'check', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white resize-y" rows="1">${escapeHtml(row.check)}</textarea>
+          </td>
+          <td class="p-3">
+            <textarea onchange="updateCell(${index}, 'action', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white resize-y" rows="1">${escapeHtml(row.action)}</textarea>
+          </td>
+          <td class="p-3 text-center">
+            <button onclick="deleteRow(${index})" class="text-rose-400 hover:text-rose-600 transition-colors p-1" title="삭제"><i class="fa-solid fa-trash-can"></i></button>
+          </td>
+        `;
+        DOM.desktopTableBody.appendChild(tr);
+
+        // 2. Mobile Card
+        const card = document.createElement('div');
+        card.className = "bg-brand-dark/40 border border-brand-accent/20 rounded-xl p-4 space-y-3 relative";
+        card.innerHTML = `
+          <div class="flex justify-between items-center border-b border-brand-accent/20 pb-2">
+            <span class="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">No. ${row.no}</span>
+            <button onclick="deleteRow(${index})" class="text-rose-400 hover:text-rose-600 p-1 text-sm"><i class="fa-solid fa-trash-can"></i></button>
+          </div>
+          <div class="space-y-2 text-xs">
+            <div>
+              <span class="block text-slate-500 font-semibold mb-1">진단 서류 및 영역</span>
+              <input type="text" value="${escapeHtml(row.area)}" onchange="updateCell(${index}, 'area', this.value)" class="w-full bg-brand-card border border-brand-accent/50 rounded-lg p-2 focus:border-brand-primary outline-none text-white font-medium">
+            </div>
+            <div>
+              <span class="block text-slate-500 font-semibold mb-1">점검 내용 (현황 및 문제점)</span>
+              <textarea onchange="updateCell(${index}, 'check', this.value)" rows="2" class="w-full bg-brand-card border border-brand-accent/50 rounded-lg p-2 focus:border-brand-primary outline-none text-white leading-relaxed">${escapeHtml(row.check)}</textarea>
+            </div>
+            <div>
+              <span class="block text-slate-500 font-semibold mb-1">개선 지도 사항</span>
+              <textarea onchange="updateCell(${index}, 'action', this.value)" rows="2" class="w-full bg-brand-card border border-brand-accent/50 rounded-lg p-2 focus:border-brand-primary outline-none text-white leading-relaxed">${escapeHtml(row.action)}</textarea>
+            </div>
+          </div>
+        `;
+        DOM.mobileCardContainer.appendChild(card);
+      });
+    }
+
+    function updateCell(index, field, value) {
+      state.tableData[index][field] = value;
+    }
+
+    function deleteRow(index) {
+      state.tableData.splice(index, 1);
+      renderTables();
+      showToast("행이 삭제되었습니다.", "info");
+    }
+
+    DOM.addTableRowBtn.addEventListener('click', () => {
+      state.tableData.push({
+        no: state.tableData.length + 1,
+        area: "",
+        check: "",
+        action: ""
+      });
+      renderTables();
+      showToast("새 행이 추가되었습니다.", "success");
+      
+      // Scroll to bottom of tables for mobile
+      DOM.mobileCardContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // --- CAMERA ENGINE (MediaDevices) ---
+    let cameraStream = null;
+    let availableCameras = [];
+    let currentCameraIndex = 0;
+
+    async function initCamera() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        availableCameras = devices.filter(device => device.kind === 'videoinput');
+        
+        // Populate dropdown
+        DOM.cameraSourceSelect.innerHTML = "";
+        if (availableCameras.length === 0) {
+          DOM.cameraSourceSelect.innerHTML = `<option value="">없음</option>`;
+          DOM.cameraEmptyState.classList.remove('hidden');
+          return;
+        }
+
+        availableCameras.forEach((device, index) => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.textContent = device.label || `카메라 ${index + 1}`;
+          DOM.cameraSourceSelect.appendChild(option);
+        });
+
+        // Autoselect back camera if mobile
+        let targetDeviceId = availableCameras[0].deviceId;
+        const backCamera = availableCameras.find(device => 
+          device.label.toLowerCase().includes('back') || 
+          device.label.toLowerCase().includes('environment') ||
+          device.label.toLowerCase().includes('후면')
+        );
+        if (backCamera) {
+          targetDeviceId = backCamera.deviceId;
+          DOM.cameraSourceSelect.value = targetDeviceId;
+          currentCameraIndex = availableCameras.indexOf(backCamera);
+        }
+
+        await startCamera(targetDeviceId);
+
+        DOM.cameraSourceSelect.addEventListener('change', async (e) => {
+          await startCamera(e.target.value);
+        });
+      } catch (err) {
+        console.error("Camera init error: ", err);
+        DOM.cameraEmptyState.classList.remove('hidden');
+      }
+    }
+
+    async function startCamera(deviceId) {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+      DOM.cameraEmptyState.classList.add('hidden');
+      
+      const constraints = {
+        video: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: deviceId ? undefined : 'environment'
+        }
+      };
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        DOM.cameraVideo.srcObject = cameraStream;
+      } catch (err) {
+        console.error("getUserMedia error: ", err);
+        // Fallback: request default video without deviceId
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          DOM.cameraVideo.srcObject = cameraStream;
+        } catch (fallbackErr) {
+          DOM.cameraEmptyState.classList.remove('hidden');
+        }
+      }
+    }
+
+    DOM.cameraCaptureBtn.addEventListener('click', () => {
+      if (!cameraStream) {
+        showToast("카메라가 활성화되지 않았습니다.", "error");
+        return;
+      }
+      
+      // Flash effect
+      DOM.flashOverlay.classList.remove('opacity-0');
+      DOM.flashOverlay.classList.add('opacity-80');
+      setTimeout(() => {
+        DOM.flashOverlay.classList.remove('opacity-80');
+        DOM.flashOverlay.classList.add('opacity-0');
+      }, 100);
+
+      // Play audio shutter sound
+      try {
+        DOM.shutterAudio.currentTime = 0;
+        DOM.shutterAudio.play();
+      } catch (e) {}
+
+      // Capture logic via canvas
+      const width = DOM.cameraVideo.videoWidth || 640;
+      const height = DOM.cameraVideo.videoHeight || 480;
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      // Mirror check (if front camera)
+      const currentTrack = cameraStream.getVideoTracks()[0];
+      const settings = currentTrack ? currentTrack.getSettings() : {};
+      const isFront = settings.facingMode === 'user' || 
+                      (availableCameras[currentCameraIndex] && 
+                       availableCameras[currentCameraIndex].label.toLowerCase().includes('front'));
+      
+      if (isFront) {
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+      }
+      
+      ctx.drawImage(DOM.cameraVideo, 0, 0, width, height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      state.capturedPhotos.push(dataUrl);
+      
+      renderThumbnails();
+      showToast("현장 사진이 캡처되었습니다.", "success");
+    });
+
+    function renderThumbnails() {
+      DOM.photoThumbContainer.innerHTML = "";
+      
+      if (state.capturedPhotos.length === 0) {
+        DOM.photoThumbContainer.innerHTML = `<p class="text-[11px] text-slate-500 italic text-center w-full">촬영된 현장 사진이 없습니다.</p>`;
+        return;
+      }
+
+      state.capturedPhotos.forEach((photo, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = "relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-brand-accent/50 group";
+        thumb.innerHTML = `
+          <img src="${photo}" class="w-full h-full object-cover">
+          <button onclick="deletePhoto(${index})" class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white text-[8px] hover:bg-red-800 transition-colors shadow">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        `;
+        DOM.photoThumbContainer.appendChild(thumb);
+      });
+    }
+
+    window.deletePhoto = function(index) {
+      state.capturedPhotos.splice(index, 1);
+      renderThumbnails();
+      showToast("사진이 삭제되었습니다.", "info");
+    };
+
+    // --- STT ENGINE (Web Speech API) ---
+    let recognition = null;
+    let isRecording = false;
+    let finalTranscript = "";
+
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        DOM.sttStatusText.textContent = "STT 미지원 브라우저";
+        DOM.sttStatusText.className = "text-[10px] text-red-400 bg-red-950/20 px-2 py-0.5 rounded-full border border-red-800/30";
+        DOM.sttRecordBtn.disabled = true;
+        DOM.sttRecordBtn.className = "flex-grow py-3 px-4 rounded-xl bg-slate-700 text-slate-500 font-bold text-sm cursor-not-allowed flex items-center justify-center space-x-2";
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'ko-KR';
+
+      recognition.onstart = () => {
+        isRecording = true;
+        DOM.sttRecordText.textContent = "녹음 중 (터치 시 정지)";
+        DOM.sttRecordBtn.classList.remove('from-red-600', 'to-rose-500');
+        DOM.sttRecordBtn.classList.add('from-cyan-500', 'to-brand-primary', 'animate-pulse-cyan');
+        DOM.sttRecordIcon.className = "fa-solid fa-microphone-lines text-brand-dark animate-bounce";
+        DOM.sttStatusText.textContent = "실시간 기록 중";
+        DOM.sttStatusText.className = "text-[10px] text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full border border-brand-primary/30 animate-pulse";
+        
+        // Request Screen Keep-Alive
+        requestWakeLock();
+      };
+
+      recognition.onerror = (event) => {
+        console.error("STT Error: ", event.error);
+        if (event.error === 'not-allowed') {
+          showToast("마이크 권한이 거부되었습니다.", "error");
+        } else {
+          showToast(`인식 오류: ${event.error}`, "error");
+        }
+        stopRecordingState();
+      };
+
+      recognition.onend = () => {
+        // Auto restart if continuous coaching is intended and we didn't press stop
+        if (isRecording) {
+          recognition.start();
+        } else {
+          stopRecordingState();
+        }
+      };
+
+      recognition.onresult = (event) => {
+        let interimTranscript = "";
+        
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + " ";
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        // Render to log logArea
+        renderSttLog(finalTranscript);
+        DOM.sttInterim.textContent = interimTranscript;
+        
+        // Auto scroll down
+        DOM.sttLogArea.scrollTop = DOM.sttLogArea.scrollHeight;
+      };
+    }
+
+    function renderSttLog(text) {
+      if (!text.trim()) {
+        DOM.sttLogArea.innerHTML = `<p class="text-slate-500 italic text-xs text-center py-6">마이크 버튼을 누르고 말씀하시면 현장 발언이 실시간 텍스트로 기록됩니다.</p>`;
+        return;
+      }
+      
+      DOM.sttLogArea.innerHTML = `
+        <div class="relative group">
+          <textarea id="editableSttText" class="w-full bg-transparent border-0 focus:ring-0 outline-none text-slate-200 text-sm leading-relaxed resize-none p-1 min-h-[120px]">${escapeHtml(text)}</textarea>
+          <div class="absolute bottom-1 right-1 opacity-60 text-[10px] text-slate-500"><i class="fa-solid fa-pen mr-1"></i>직접 편집 가능</div>
+        </div>
+      `;
+      
+      // Auto sync edits in log view back to finalTranscript
+      const textNode = document.getElementById('editableSttText');
+      if (textNode) {
+        textNode.addEventListener('input', (e) => {
+          finalTranscript = e.target.value;
+        });
+      }
+    }
+
+    function stopRecordingState() {
+      isRecording = false;
+      DOM.sttRecordText.textContent = "녹음 시작";
+      DOM.sttRecordBtn.classList.remove('from-cyan-500', 'to-brand-primary', 'animate-pulse-cyan');
+      DOM.sttRecordBtn.classList.add('from-red-600', 'to-rose-500');
+      DOM.sttRecordIcon.className = "fa-solid fa-microphone";
+      DOM.sttStatusText.textContent = "일시정지됨";
+      DOM.sttStatusText.className = "text-[10px] text-amber-400 bg-amber-950/20 px-2 py-0.5 rounded-full border border-amber-800/30";
+      DOM.sttInterim.textContent = "";
+      
+      releaseWakeLock();
+    }
+
+    DOM.sttRecordBtn.addEventListener('click', () => {
+      if (!recognition) return;
+      
+      if (isRecording) {
+        isRecording = false;
+        recognition.stop();
+        stopRecordingState();
+      } else {
+        finalTranscript = DOM.sttLogArea.querySelector('textarea')?.value || "";
+        recognition.start();
+      }
+    });
+
+    DOM.clearSttBtn.addEventListener('click', () => {
+      finalTranscript = "";
+      DOM.sttInterim.textContent = "";
+      renderSttLog("");
+      showToast("기록이 초기화되었습니다.", "info");
+    });
+
+    // Send to Purpose flow
+    DOM.sendToPurposeBtn.addEventListener('click', () => {
+      const activeText = DOM.sttLogArea.querySelector('textarea')?.value || "";
+      if (!activeText.trim()) {
+        showToast("목적으로 지정할 텍스트가 없습니다.", "error");
+        return;
+      }
+      
+      // 발화 텍스트 중 첫 문장 혹은 첫 줄을 발췌하여 목적에 세팅
+      const sentences = activeText.trim().split(/[.\n]/);
+      const cleanPurpose = sentences[0].trim();
+      
+      DOM.infoPurpose.value = cleanPurpose;
+      state.purpose = cleanPurpose;
+      
+      showToast("첫 번째 문장을 컨설팅 목적으로 지정했습니다.", "success");
+    });
+
+    // Send to Table flow
+    DOM.sendToTableBtn.addEventListener('click', () => {
+      const activeText = DOM.sttLogArea.querySelector('textarea')?.value || "";
+      if (!activeText.trim()) {
+        showToast("추가할 텍스트가 없습니다. 녹음을 먼저 진행해 주세요.", "error");
+        return;
+      }
+      
+      // Open modal with text pre-filled in 'check' area
+      DOM.modalArea.value = "";
+      DOM.modalCheck.value = activeText.trim();
+      DOM.modalAction.value = "";
+      
+      DOM.sttInsertModal.classList.remove('opacity-0', 'pointer-events-none');
+    });
+
+    window.closeSttModal = function() {
+      DOM.sttInsertModal.classList.add('opacity-0', 'pointer-events-none');
+    };
+
+    window.confirmSttInsert = function() {
+      const areaVal = DOM.modalArea.value.trim() || "기타 현장 코칭";
+      const checkVal = DOM.modalCheck.value.trim();
+      const actionVal = DOM.modalAction.value.trim() || "해당 사항 보완 권고";
+      
+      if (!checkVal) {
+        showToast("점검 내용은 필수입니다.", "error");
+        return;
+      }
+
+      state.tableData.push({
+        no: state.tableData.length + 1,
+        area: areaVal,
+        check: checkVal,
+        action: actionVal
+      });
+      
+      renderTables();
+      closeSttModal();
+      showToast("STT 기록이 점검 내용에 반영되었습니다.", "success");
+      
+      // Auto scroll down to details
+      DOM.mobileCardContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // --- WAKE LOCK ENGINE (Prevent screen dimming) ---
+    async function initWakeLock() {
+      document.addEventListener('visibilitychange', async () => {
+        if (state.wakeLock !== null && document.visibilityState === 'visible') {
+          await requestWakeLock();
+        }
+      });
+    }
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          state.wakeLock = await navigator.wakeLock.request('screen');
+          DOM.wakeLockBadge.classList.remove('hidden');
+        } catch (err) {
+          console.error(`WakeLock error: ${err.name}, ${err.message}`);
+        }
+      }
+    }
+
+    function releaseWakeLock() {
+      if (state.wakeLock) {
+        state.wakeLock.release().then(() => {
+          state.wakeLock = null;
+          DOM.wakeLockBadge.classList.add('hidden');
+        });
+      }
+    }
+
+    // --- DOCX GENERATION ENGINE (docx.js) ---
+    DOM.downloadDocxBtn.addEventListener('click', async () => {
+      DOM.downloadDocxBtn.disabled = true;
+      const originalHtml = DOM.downloadDocxBtn.innerHTML;
+      DOM.downloadDocxBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>보고서 생성 및 압축 중...</span>`;
+      
+      try {
+        await generateDocument();
+        showToast("워드 보고서가 성공적으로 다운로드되었습니다.", "success");
+      } catch (err) {
+        console.error("DOCX Build Failure: ", err);
+        showToast("보고서 생성 중 오류가 발생했습니다. 개발 콘솔을 참고해 주세요.", "error");
+      } finally {
+        DOM.downloadDocxBtn.disabled = false;
+        DOM.downloadDocxBtn.innerHTML = originalHtml;
+      }
+    });
+
+    async function generateDocument() {
+      const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ImageRun, HeadingLevel } = window.docx;
+      
+      // Base64 helper to Uint8Array converter for docx.js images
+      function base64ToUint8Array(base64Data) {
+        const base64Str = base64Data.split(',')[1];
+        const binaryString = atob(base64Str);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
+      }
+
+      // Default cell border style definition
+      const cellBorders = {
+        top: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+        left: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" },
+        right: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" }
+      };
+
+      // Styles
+      const mainFont = "맑은 고딕";
+      
+      // SECTION children accumulator
+      const children = [];
+
+      // 1. Title
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 360 },
+          children: [
+            new TextRun({
+              text: "HACCP 및 품질관리 정기 컨설팅 결과 보고서",
+              bold: true,
+              size: 36, // 18pt
+              font: mainFont,
+              color: "0F172A"
+            })
+          ]
+        })
+      );
+
+      // 2. Section 1 Heading
+      children.push(
+        new Paragraph({
+          spacing: { before: 240, after: 120 },
+          children: [
+            new TextRun({
+              text: "1. 컨설팅 기본 정보",
+              bold: true,
+              size: 24, // 12pt
+              font: mainFont,
+              color: "1E293B"
+            })
+          ]
+        })
+      );
+
+      // 3. Info Table
+      const formattedDate = formatDateString(state.consultingDate);
+      const weekDay = getWeekDay(state.consultingDate);
+      
+      const infoTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          // Row 1
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "수행 일자", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 35, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: `${formattedDate} (${weekDay})`, size: 20, font: mainFont })] })]
+              }),
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "수행 시간", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 35, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: `${state.timeStart} ~ ${state.timeEnd} (총 ${calculateDuration(state.timeStart, state.timeEnd)})`, size: 20, font: mainFont })] })]
+              })
+            ]
+          }),
+          // Row 2
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "대상 기관", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 85, type: WidthType.PERCENTAGE },
+                columnSpan: 3,
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: state.targetOrg, size: 20, font: mainFont })] })]
+              })
+            ]
+          }),
+          // Row 3
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "컨설턴트", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 85, type: WidthType.PERCENTAGE },
+                columnSpan: 3,
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: state.consultant, size: 20, font: mainFont })] })]
+              })
+            ]
+          }),
+          // Row 4
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "컨설팅 목적", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 85, type: WidthType.PERCENTAGE },
+                columnSpan: 3,
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: state.purpose, size: 20, font: mainFont })] })]
+              })
+            ]
+          })
+        ]
+      });
+      children.push(infoTable);
+      children.push(new Paragraph({ spacing: { after: 240 } })); // spacer
+
+      // 4. Section 2 Heading
+      children.push(
+        new Paragraph({
+          spacing: { before: 240, after: 120 },
+          children: [
+            new TextRun({
+              text: "2. 주요 서류 점검 및 지도 내용",
+              bold: true,
+              size: 24, // 12pt
+              font: mainFont,
+              color: "1E293B"
+            })
+          ]
+        })
+      );
+
+      // 5. Data Table Header Row
+      const dataTableRows = [];
+      dataTableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 8, type: WidthType.PERCENTAGE },
+              shading: { fill: "E6EEFA" },
+              borders: cellBorders,
+              children: [new Paragraph({ children: [new TextRun({ text: "No.", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+            }),
+            new TableCell({
+              width: { size: 27, type: WidthType.PERCENTAGE },
+              shading: { fill: "E6EEFA" },
+              borders: cellBorders,
+              children: [new Paragraph({ children: [new TextRun({ text: "진단 서류 및 영역", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+            }),
+            new TableCell({
+              width: { size: 35, type: WidthType.PERCENTAGE },
+              shading: { fill: "E6EEFA" },
+              borders: cellBorders,
+              children: [new Paragraph({ children: [new TextRun({ text: "점검 내용 (현황 및 문제점)", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+            }),
+            new TableCell({
+              width: { size: 30, type: WidthType.PERCENTAGE },
+              shading: { fill: "E6EEFA" },
+              borders: cellBorders,
+              children: [new Paragraph({ children: [new TextRun({ text: "개선 지도 사항", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+            })
+          ]
+        })
+      );
+
+      // Data Table Data Rows
+      state.tableData.forEach((row) => {
+        // Multi-line rendering helper inside table cells
+        function createMultiLineParagraphs(text) {
+          if (!text) return [new Paragraph({ children: [new TextRun({ text: "", size: 20, font: mainFont })] })];
+          return text.split('\n').map(line => {
+            return new Paragraph({
+              spacing: { after: 60 },
+              children: [new TextRun({ text: line, size: 20, font: mainFont })]
+            });
+          });
+        }
+
+        dataTableRows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 8, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: row.no.toString(), size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 27, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: row.area, size: 20, font: mainFont })] })]
+              }),
+              new TableCell({
+                width: { size: 35, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: createMultiLineParagraphs(row.check)
+              }),
+              new TableCell({
+                width: { size: 30, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: createMultiLineParagraphs(row.action)
+              })
+            ]
+          })
+        );
+      });
+
+      const dataTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: dataTableRows
+      });
+      children.push(dataTable);
+      children.push(new Paragraph({ spacing: { after: 240 } })); // spacer
+
+      // 6. Section 3 Heading
+      children.push(
+        new Paragraph({
+          spacing: { before: 240, after: 120 },
+          children: [
+            new TextRun({
+              text: "3. 종합 의견 및 향후 계획",
+              bold: true,
+              size: 24, // 12pt
+              font: mainFont,
+              color: "1E293B"
+            })
+          ]
+        })
+      );
+
+      // Section 3 Table (Opinions)
+      function convertTextToBulletParagraphs(text) {
+        if (!text) return [new Paragraph({ children: [new TextRun({ text: "", size: 20, font: mainFont })] })];
+        return text.split('\n').map(line => {
+          return new Paragraph({
+            spacing: { after: 60 },
+            children: [new TextRun({ text: line, size: 20, font: mainFont })]
+          });
+        });
+      }
+
+      const opinionTable = new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "총평", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 85, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: convertTextToBulletParagraphs(state.opinionSummary)
+              })
+            ]
+          }),
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "차후 계획", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 85, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: convertTextToBulletParagraphs(state.opinionNextPlan)
+              })
+            ]
+          })
+        ]
+      });
+      children.push(opinionTable);
+      children.push(new Paragraph({ spacing: { after: 480 } })); // wider spacer before signature
+
+      // 7. Signature Area
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 240, after: 120 },
+          children: [
+            new TextRun({
+              text: "위와 같이 HACCP 및 품질관리 정기 컨설팅 결과를 보고합니다.",
+              bold: true,
+              size: 24, // 12pt
+              font: mainFont,
+              color: "1E293B"
+            })
+          ]
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 120, after: 240 },
+          children: [
+            new TextRun({
+              text: formattedDate,
+              bold: true,
+              size: 24, // 12pt
+              font: mainFont,
+              color: "1E293B"
+            })
+          ]
+        })
+      );
+
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.RIGHT,
+          spacing: { before: 120, after: 480 },
+          indent: { right: 720 }, // Indent a bit from the right edge
+          children: [
+            new TextRun({
+              text: "컨설턴트 : 고 환 석  (인)",
+              bold: true,
+              size: 24, // 12pt
+              font: mainFont,
+              color: "1E293B"
+            })
+          ]
+        })
+      );
+
+      // 8. Appendix: Photos (if captured any)
+      if (state.capturedPhotos.length > 0) {
+        // Page break
+        children.push(new Paragraph({ pageBreakBefore: true }));
+
+        children.push(
+          new Paragraph({
+            spacing: { before: 240, after: 120 },
+            children: [
+              new TextRun({
+                text: "[부록] 현장 점검 사진 목록",
+                bold: true,
+                size: 24, // 12pt
+                font: mainFont,
+                color: "1E293B"
+              })
+            ]
+          })
+        );
+
+        // Photo Grid inside Word: Build rows with 2 columns
+        const photoCells = [];
+        for (let i = 0; i < state.capturedPhotos.length; i += 2) {
+          const rowChildren = [];
+          
+          // Cell 1
+          const imgData1 = base64ToUint8Array(state.capturedPhotos[i]);
+          rowChildren.push(
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              borders: cellBorders,
+              children: [
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  spacing: { before: 60, after: 60 },
+                  children: [
+                    new ImageRun({
+                      data: imgData1,
+                      transformation: { width: 260, height: 195 },
+                      type: "jpg"
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 120 },
+                  children: [new TextRun({ text: `사진 ${i + 1}`, size: 18, bold: true, font: mainFont, color: "64748B" })]
+                })
+              ]
+            })
+          );
+
+          // Cell 2 (or empty Cell if odd number of photos)
+          if (i + 1 < state.capturedPhotos.length) {
+            const imgData2 = base64ToUint8Array(state.capturedPhotos[i + 1]);
+            rowChildren.push(
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 60, after: 60 },
+                    children: [
+                      new ImageRun({
+                        data: imgData2,
+                        transformation: { width: 260, height: 195 },
+                        type: "jpg"
+                      })
+                    ]
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 120 },
+                    children: [new TextRun({ text: `사진 ${i + 2}`, size: 18, bold: true, font: mainFont, color: "64748B" })]
+                  })
+                ]
+              })
+            );
+          } else {
+            rowChildren.push(
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [] })]
+              })
+            );
+          }
+
+          photoCells.push(new TableRow({ children: rowChildren }));
+        }
+
+        const photoTable = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: photoCells
+        });
+        children.push(photoTable);
+      }
+
+      // Build Document
+      const doc = new Document({
+        sections: [
+          {
+            properties: {
+              page: {
+                margin: {
+                  top: 1440, // 1 inch
+                  bottom: 1440,
+                  left: 1440,
+                  right: 1440
+                }
+              }
+            },
+            children: children
+          }
+        ]
+      });
+
+      // Generate & Download Blob
+      const blob = await Packer.toBlob(doc);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      
+      const fileDate = state.consultingDate.replace(/-/g, "");
+      const cleanOrg = state.targetOrg.replace(/\s+/g, "_");
+      a.download = `${fileDate}_HACCP_Consulting_Report_${cleanOrg}.docx`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+
+    // --- UTILITIES FOR DOCX ---
+    function formatDateString(dateStr) {
+      if (!dateStr) return "";
+      const parts = dateStr.split('-');
+      return `${parts[0]}년 ${parseInt(parts[1])}월 ${parseInt(parts[2])}일`;
+    }
+
+    function getWeekDay(dateStr) {
+      if (!dateStr) return "";
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const day = new Date(dateStr).getDay();
+      return weekdays[day];
+    }
+
+    function calculateDuration(start, end) {
+      if (!start || !end) return "0시간 0분";
+      const sParts = start.split(':').map(Number);
+      const eParts = end.split(':').map(Number);
+      
+      let sMinutes = sParts[0] * 60 + sParts[1];
+      let eMinutes = eParts[0] * 60 + eParts[1];
+      
+      if (eMinutes < sMinutes) { // Over midnight fallback
+        eMinutes += 24 * 60;
+      }
+      
+      const diff = eMinutes - sMinutes;
+      const hours = Math.floor(diff / 60);
+      const mins = diff % 60;
+      
+      if (hours === 0) {
+        return `${mins}분`;
+      }
+      return `${hours}시간 ${mins}분`;
+    }
+
+    // --- SERVICE WORKER REGISTRATION (PWA) ---
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then((reg) => {
+              console.log('ServiceWorker registered with scope: ', reg.scope);
+            })
+            .catch((err) => {
+              console.error('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    }
+
+    // --- PWA INSTALL PROMPT HANDLER ---
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      DOM.pwaInstallBtn.classList.remove('hidden');
+    });
+
+    DOM.pwaInstallBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        DOM.pwaInstallBtn.classList.add('hidden');
+      }
+      deferredPrompt = null;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      DOM.pwaInstallBtn.classList.add('hidden');
+      showToast("PWA 앱이 홈 화면에 설치되었습니다.", "success");
+    });
+
+    // Run initializer
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
