@@ -207,6 +207,12 @@
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
+
+          <!-- API Key 등록 단독 대형 버튼 -->
+          <button id="aiSettingsManualBtn" class="w-full py-2.5 px-3 rounded-xl bg-brand-dark hover:bg-slate-800 text-slate-300 font-semibold text-xs border border-brand-accent/30 flex items-center justify-center space-x-2 transition-all duration-200">
+            <i class="fa-solid fa-key text-brand-primary animate-pulse"></i>
+            <span>🔑 여기를 눌러 AI (Gemini) API Key 등록</span>
+          </button>
         </div>
       </section>
 
@@ -441,6 +447,7 @@
       sendToTableBtn: document.getElementById('sendToTableBtn'),
       clearSttBtn: document.getElementById('clearSttBtn'),
       aiSettingsBtn: document.getElementById('aiSettingsBtn'),
+      aiSettingsManualBtn: document.getElementById('aiSettingsManualBtn'),
       aiSettingsModal: document.getElementById('aiSettingsModal'),
       aiApiKeyInput: document.getElementById('aiApiKeyInput'),
       aiAnalyzeBtn: document.getElementById('aiAnalyzeBtn'),
@@ -978,11 +985,14 @@
     };
 
     // --- AI ANALYSIS & SETTINGS EVENTS ---
-    DOM.aiSettingsBtn.addEventListener('click', () => {
+    const openSettings = () => {
       DOM.aiApiKeyInput.value = localStorage.getItem('GEMINI_API_KEY') || "";
       DOM.aiSettingsModal.classList.remove('opacity-0', 'pointer-events-none');
       DOM.aiSettingsModal.classList.add('opacity-100', 'pointer-events-auto');
-    });
+    };
+    
+    DOM.aiSettingsBtn.addEventListener('click', openSettings);
+    DOM.aiSettingsManualBtn.addEventListener('click', openSettings);
     
     window.closeAiSettingsModal = function() {
       DOM.aiSettingsModal.classList.add('opacity-0', 'pointer-events-none');
@@ -1003,12 +1013,17 @@
 
     DOM.aiAnalyzeBtn.addEventListener('click', async () => {
       const rawText = DOM.sttLogArea.value || DOM.sttInterim.textContent || "";
-      if (!rawText.trim() || rawText.includes("마이크 버튼을 누르고 말씀하시면")) {
-        showToast("분석할 녹음 텍스트가 없습니다.", "error");
+      if (!rawText.trim()) {
+        showToast("분석할 녹음 텍스트가 없습니다. 내용을 작성해 주세요.", "error");
         return;
       }
       
       const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      if (!apiKey) {
+        showToast("AI 분석을 위해 Gemini API Key가 먼저 등록되어야 합니다. 설정 창을 엽니다.", "info");
+        setTimeout(openSettings, 800);
+        return;
+      }
       
       DOM.aiAnalyzeBtn.disabled = true;
       const originalBtnHtml = DOM.aiAnalyzeBtn.innerHTML;
