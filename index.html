@@ -341,7 +341,7 @@
   </div>
 
   <!-- STT 행 추가 모달 창 (녹음 텍스트 가공용) -->
-  <div id="sttInsertModal" class="fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-200">
+  <div id="sttInsertModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="bg-brand-card border border-brand-accent/30 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-brand-accent/20 pb-2">
         <h3 class="text-sm font-bold text-white">음성 텍스트를 테이블 행으로 추가</h3>
@@ -371,7 +371,7 @@
   </div>
 
   <!-- AI 설정 모달 창 -->
-  <div id="aiSettingsModal" class="fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-200">
+  <div id="aiSettingsModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="bg-brand-card border border-brand-accent/30 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-brand-accent/20 pb-2">
         <h3 class="text-sm font-bold text-white flex items-center space-x-2">
@@ -427,58 +427,58 @@
       wakeLock: null
     };
 
-    // --- DOM REFERENCES ---
+    // --- DOM REFERENCES (Getter style to prevent null exceptions on early parser lifecycle) ---
     const DOM = {
-      infoTargetOrgSelect: document.getElementById('infoTargetOrgSelect'),
-      infoTargetOrgInput: document.getElementById('infoTargetOrgInput'),
-      infoDate: document.getElementById('infoDate'),
-      infoTimeStart: document.getElementById('infoTimeStart'),
-      infoTimeEnd: document.getElementById('infoTimeEnd'),
-      infoConsultant: document.getElementById('infoConsultant'),
-      infoPurpose: document.getElementById('infoPurpose'),
+      get infoTargetOrgSelect() { return document.getElementById('infoTargetOrgSelect'); },
+      get infoTargetOrgInput() { return document.getElementById('infoTargetOrgInput'); },
+      get infoDate() { return document.getElementById('infoDate'); },
+      get infoTimeStart() { return document.getElementById('infoTimeStart'); },
+      get infoTimeEnd() { return document.getElementById('infoTimeEnd'); },
+      get infoConsultant() { return document.getElementById('infoConsultant'); },
+      get infoPurpose() { return document.getElementById('infoPurpose'); },
       
-      sttRecordBtn: document.getElementById('sttRecordBtn'),
-      sttRecordIcon: document.getElementById('sttRecordIcon'),
-      sttRecordText: document.getElementById('sttRecordText'),
-      sttLogArea: document.getElementById('sttLogArea'),
-      sttInterim: document.getElementById('sttInterim'),
-      sttStatusText: document.getElementById('sttStatusText'),
-      sendToPurposeBtn: document.getElementById('sendToPurposeBtn'),
-      sendToTableBtn: document.getElementById('sendToTableBtn'),
-      clearSttBtn: document.getElementById('clearSttBtn'),
-      aiSettingsBtn: document.getElementById('aiSettingsBtn'),
-      aiSettingsManualBtn: document.getElementById('aiSettingsManualBtn'),
-      aiSettingsModal: document.getElementById('aiSettingsModal'),
-      aiApiKeyInput: document.getElementById('aiApiKeyInput'),
-      aiAnalyzeBtn: document.getElementById('aiAnalyzeBtn'),
+      get sttRecordBtn() { return document.getElementById('sttRecordBtn'); },
+      get sttRecordIcon() { return document.getElementById('sttRecordIcon'); },
+      get sttRecordText() { return document.getElementById('sttRecordText'); },
+      get sttLogArea() { return document.getElementById('sttLogArea'); },
+      get sttInterim() { return document.getElementById('sttInterim'); },
+      get sttStatusText() { return document.getElementById('sttStatusText'); },
+      get sendToPurposeBtn() { return document.getElementById('sendToPurposeBtn'); },
+      get sendToTableBtn() { return document.getElementById('sendToTableBtn'); },
+      get clearSttBtn() { return document.getElementById('clearSttBtn'); },
+      get aiSettingsBtn() { return document.getElementById('aiSettingsBtn'); },
+      get aiSettingsManualBtn() { return document.getElementById('aiSettingsManualBtn'); },
+      get aiSettingsModal() { return document.getElementById('aiSettingsModal'); },
+      get aiApiKeyInput() { return document.getElementById('aiApiKeyInput'); },
+      get aiAnalyzeBtn() { return document.getElementById('aiAnalyzeBtn'); },
       
-      cameraVideo: document.getElementById('cameraVideo'),
-      cameraCaptureBtn: document.getElementById('cameraCaptureBtn'),
-      cameraEmptyState: document.getElementById('cameraEmptyState'),
-      cameraSourceSelect: document.getElementById('cameraSourceSelect'),
-      photoThumbContainer: document.getElementById('photoThumbContainer'),
-      flashOverlay: document.getElementById('flashOverlay'),
-      shutterAudio: document.getElementById('shutterAudio'),
+      get cameraVideo() { return document.getElementById('cameraVideo'); },
+      get cameraCaptureBtn() { return document.getElementById('cameraCaptureBtn'); },
+      get cameraEmptyState() { return document.getElementById('cameraEmptyState'); },
+      get cameraSourceSelect() { return document.getElementById('cameraSourceSelect'); },
+      get photoThumbContainer() { return document.getElementById('photoThumbContainer'); },
+      get flashOverlay() { return document.getElementById('flashOverlay'); },
+      get shutterAudio() { return document.getElementById('shutterAudio'); },
       
-      desktopTableBody: document.getElementById('desktopTableBody'),
-      mobileCardContainer: document.getElementById('mobileCardContainer'),
-      addTableRowBtn: document.getElementById('addTableRowBtn'),
+      get desktopTableBody() { return document.getElementById('desktopTableBody'); },
+      get mobileCardContainer() { return document.getElementById('mobileCardContainer'); },
+      get addTableRowBtn() { return document.getElementById('addTableRowBtn'); },
       
-      opinionSummary: document.getElementById('opinionSummary'),
-      opinionNextPlan: document.getElementById('opinionNextPlan'),
-      downloadDocxBtn: document.getElementById('downloadDocxBtn'),
+      get opinionSummary() { return document.getElementById('opinionSummary'); },
+      get opinionNextPlan() { return document.getElementById('opinionNextPlan'); },
+      get downloadDocxBtn() { return document.getElementById('downloadDocxBtn'); },
       
-      wakeLockBadge: document.getElementById('wakeLockBadge'),
-      pwaInstallBtn: document.getElementById('pwaInstallBtn'),
+      get wakeLockBadge() { return document.getElementById('wakeLockBadge'); },
+      get pwaInstallBtn() { return document.getElementById('pwaInstallBtn'); },
       
-      toast: document.getElementById('toast'),
-      toastMessage: document.getElementById('toastMessage'),
-      toastIcon: document.getElementById('toastIcon'),
+      get toast() { return document.getElementById('toast'); },
+      get toastMessage() { return document.getElementById('toastMessage'); },
+      get toastIcon() { return document.getElementById('toastIcon'); },
       
-      sttInsertModal: document.getElementById('sttInsertModal'),
-      modalArea: document.getElementById('modalArea'),
-      modalCheck: document.getElementById('modalCheck'),
-      modalAction: document.getElementById('modalAction')
+      get sttInsertModal() { return document.getElementById('sttInsertModal'); },
+      get modalArea() { return document.getElementById('modalArea'); },
+      get modalCheck() { return document.getElementById('modalCheck'); },
+      get modalAction() { return document.getElementById('modalAction'); }
     };
 
     // --- TOAST NOTIFICATION ---
@@ -950,13 +950,13 @@
       DOM.modalCheck.value = activeText.trim();
       DOM.modalAction.value = "";
       
-      DOM.sttInsertModal.classList.remove('opacity-0', 'pointer-events-none');
-      DOM.sttInsertModal.classList.add('opacity-100', 'pointer-events-auto');
+      DOM.sttInsertModal.classList.remove('hidden');
+      DOM.sttInsertModal.classList.add('flex');
     });
 
     window.closeSttModal = function() {
-      DOM.sttInsertModal.classList.add('opacity-0', 'pointer-events-none');
-      DOM.sttInsertModal.classList.remove('opacity-100', 'pointer-events-auto');
+      DOM.sttInsertModal.classList.remove('flex');
+      DOM.sttInsertModal.classList.add('hidden');
     };
 
     window.confirmSttInsert = function() {
@@ -987,16 +987,16 @@
     // --- AI ANALYSIS & SETTINGS EVENTS ---
     const openSettings = () => {
       DOM.aiApiKeyInput.value = localStorage.getItem('GEMINI_API_KEY') || "";
-      DOM.aiSettingsModal.classList.remove('opacity-0', 'pointer-events-none');
-      DOM.aiSettingsModal.classList.add('opacity-100', 'pointer-events-auto');
+      DOM.aiSettingsModal.classList.remove('hidden');
+      DOM.aiSettingsModal.classList.add('flex');
     };
     
     DOM.aiSettingsBtn.addEventListener('click', openSettings);
     DOM.aiSettingsManualBtn.addEventListener('click', openSettings);
     
     window.closeAiSettingsModal = function() {
-      DOM.aiSettingsModal.classList.add('opacity-0', 'pointer-events-none');
-      DOM.aiSettingsModal.classList.remove('opacity-100', 'pointer-events-auto');
+      DOM.aiSettingsModal.classList.remove('flex');
+      DOM.aiSettingsModal.classList.add('hidden');
     };
     
     window.saveAiSettings = function() {
