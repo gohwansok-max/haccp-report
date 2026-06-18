@@ -944,10 +944,12 @@
       DOM.modalAction.value = "";
       
       DOM.sttInsertModal.classList.remove('opacity-0', 'pointer-events-none');
+      DOM.sttInsertModal.classList.add('opacity-100', 'pointer-events-auto');
     });
 
     window.closeSttModal = function() {
       DOM.sttInsertModal.classList.add('opacity-0', 'pointer-events-none');
+      DOM.sttInsertModal.classList.remove('opacity-100', 'pointer-events-auto');
     };
 
     window.confirmSttInsert = function() {
@@ -979,10 +981,12 @@
     DOM.aiSettingsBtn.addEventListener('click', () => {
       DOM.aiApiKeyInput.value = localStorage.getItem('GEMINI_API_KEY') || "";
       DOM.aiSettingsModal.classList.remove('opacity-0', 'pointer-events-none');
+      DOM.aiSettingsModal.classList.add('opacity-100', 'pointer-events-auto');
     });
     
     window.closeAiSettingsModal = function() {
       DOM.aiSettingsModal.classList.add('opacity-0', 'pointer-events-none');
+      DOM.aiSettingsModal.classList.remove('opacity-100', 'pointer-events-auto');
     };
     
     window.saveAiSettings = function() {
