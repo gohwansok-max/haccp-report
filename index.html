@@ -1156,10 +1156,6 @@ ${rawText}`;
       state.opinionSummary = data.summary;
     }
 
-      // Auto scroll down to details
-      DOM.mobileCardContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-    };
-
     // --- WAKE LOCK ENGINE (Prevent screen dimming) ---
     async function initWakeLock() {
       document.addEventListener('visibilitychange', async () => {
