@@ -92,6 +92,11 @@
     
     <!-- PWA Install Button & WakeLock Status & AI Setting -->
     <div class="flex items-center space-x-2">
+      <!-- 임시저장 배지 -->
+      <div id="autoSaveBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center space-x-1 transition-all duration-300">
+        <i class="fa-solid fa-floppy-disk text-[8px]"></i>
+        <span>자동 저장됨</span>
+      </div>
       <div id="wakeLockBadge" class="hidden px-2 py-0.5 rounded-full text-[10px] bg-brand-primary/10 border border-brand-primary/30 text-brand-primary flex items-center space-x-1 animate-pulse">
         <i class="fa-solid fa-sun text-[8px]"></i>
         <span>화면 켬</span>
@@ -101,7 +106,7 @@
       </button>
       
       <!-- 전체 초기화 -->
-      <button onclick="if(confirm('작성 중인 모든 내용(녹음, 사진, 표 등)이 초기화됩니다. 계속하시겠습니까?')) window.location.reload();" class="px-3 py-1.5 rounded-lg text-[11px] bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-all border border-red-500/30 flex items-center shadow-sm">
+      <button onclick="resetAllData();" class="px-3 py-1.5 rounded-lg text-[11px] bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-all border border-red-500/30 flex items-center shadow-sm">
         <i class="fa-solid fa-rotate-left mr-1.5"></i> 전체 초기화
       </button>
       <!-- AI Settings Gear -->
@@ -180,10 +185,21 @@
         </div>
 
         <!-- STT 로그 뷰어 (수동 타이핑 겸용 큼직한 Textarea로 변경) -->
-        <div class="flex-grow bg-brand-dark border border-brand-accent/40 rounded-xl p-3 mb-4 flex flex-col justify-between overflow-hidden">
+        <div class="flex-grow bg-brand-dark border border-brand-accent/40 rounded-xl p-3 mb-3 flex flex-col justify-between overflow-hidden">
           <textarea id="sttLogArea" class="w-full flex-grow bg-transparent border-0 focus:ring-0 outline-none text-slate-200 text-sm leading-relaxed resize-none p-1 placeholder-slate-500" placeholder="이곳에 직접 현장 코칭 내용을 타이핑하시거나, 왼쪽의 [녹음 시작] 버튼을 누르고 말씀하시면 실시간으로 누적됩니다."></textarea>
           <!-- 실시간 음성 수집 중 임시 텍스트(STT 보조) 표시 -->
           <div id="sttInterim" class="text-brand-primary font-medium text-xs italic mt-1 min-h-[16px]"></div>
+        </div>
+
+        <!-- 화자 분리 숏컷 태그 버튼 -->
+        <div class="flex items-center space-x-2 mb-3">
+          <span class="text-[10px] text-slate-500 font-bold uppercase">화자 숏컷:</span>
+          <button onclick="insertSpeakerTag('[컨설턴트:] ')" class="px-2 py-1 rounded bg-brand-accent/50 hover:bg-brand-primary/20 hover:text-brand-primary text-slate-300 text-[11px] font-bold transition-all border border-brand-accent/30 flex items-center">
+            <i class="fa-solid fa-user-tie text-[9px] mr-1 text-brand-primary"></i> 컨설턴트
+          </button>
+          <button onclick="insertSpeakerTag('[업체 담당자:] ')" class="px-2 py-1 rounded bg-brand-accent/50 hover:bg-brand-primary/20 hover:text-brand-primary text-slate-300 text-[11px] font-bold transition-all border border-brand-accent/30 flex items-center">
+            <i class="fa-solid fa-user-gear text-[9px] mr-1 text-brand-secondary"></i> 업체 담당자
+          </button>
         </div>
 
         <!-- 녹음 및 텍스트 적용 컨트롤러 -->
@@ -207,6 +223,11 @@
             <button id="sendToTableBtn" class="flex-grow py-2.5 px-3 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-xs border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="점검 테이블에 행 추가">
               <i class="fa-solid fa-arrow-right-to-bracket text-brand-primary"></i>
               <span>테이블 전송</span>
+            </button>
+            <!-- 🔋 배터리 절전 모드 버튼 -->
+            <button id="batterySaveBtn" class="flex-grow py-2.5 px-3 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-xs border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="화면 절전 및 배터리 절약">
+              <i class="fa-solid fa-battery-three-quarters text-emerald-400"></i>
+              <span>절전 모드</span>
             </button>
             <button id="clearSttBtn" class="p-2.5 rounded-xl bg-brand-dark border border-brand-accent text-slate-400 hover:text-white hover:bg-slate-800 transition-all" title="기록 초기화">
               <i class="fa-solid fa-trash-can"></i>
@@ -262,6 +283,42 @@
         </div>
       </section>
     </div>
+
+    <!-- AI 현장 진단 브리핑 카드 (초기 hidden) -->
+    <section id="aiBriefingSection" class="hidden bg-gradient-to-br from-brand-card to-brand-dark border-2 border-brand-primary/30 rounded-2xl p-6 shadow-2xl shadow-brand-primary/5 transition-all duration-500 ease-out transform scale-95 opacity-0">
+      <div class="flex items-center justify-between border-b border-brand-accent/30 pb-3 mb-4">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center border border-brand-primary/30">
+            <i class="fa-solid fa-wand-magic-sparkles text-brand-primary text-sm animate-pulse"></i>
+          </div>
+          <div>
+            <h2 class="text-sm font-black text-white tracking-wide">AI 현장 진단 브리핑</h2>
+            <p class="text-[10px] text-slate-400">Gemini AI가 실시간 음성 분석 결과를 바탕으로 도출한 핵심 요약</p>
+          </div>
+        </div>
+        <button onclick="document.getElementById('aiBriefingSection').classList.add('hidden')" class="text-slate-500 hover:text-white transition-colors" title="닫기">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 1. 핵심 키워드 영역 -->
+        <div class="md:col-span-1 bg-brand-dark/60 rounded-xl p-4 border border-brand-accent/30 flex flex-col justify-between">
+          <span class="text-[11px] font-bold text-brand-primary uppercase tracking-wider block mb-2"><i class="fa-solid fa-tags text-[9px] mr-1"></i> 오늘의 핵심 키워드</span>
+          <div id="briefingKeywords" class="flex flex-wrap gap-1.5 py-1">
+            <!-- 키워드 동적 배치 -->
+          </div>
+        </div>
+        
+        <!-- 2. 3줄 브리핑 요약 영역 -->
+        <div class="md:col-span-2 bg-brand-dark/60 rounded-xl p-4 border border-brand-accent/30">
+          <span class="text-[11px] font-bold text-brand-secondary uppercase tracking-wider block mb-2"><i class="fa-solid fa-list-check text-[9px] mr-1"></i> 3줄 브리핑 요약</span>
+          <ul id="briefingSummaryList" class="space-y-2 text-xs text-slate-300 leading-relaxed">
+            <!-- 3줄 요약 동적 배치 -->
+          </ul>
+        </div>
+      </div>
+    </section>
 
     <!-- 하단: 정형화 데이터 편집 테이블 -->
     <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl">
@@ -407,6 +464,54 @@
     </div>
   </div>
 
+  <!-- 데이터 복구 모달 창 -->
+  <div id="recoveryModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div class="bg-brand-card border-2 border-brand-primary/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 transform scale-95 transition-all duration-300">
+      <div class="flex items-center space-x-3 text-brand-primary">
+        <div class="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/30">
+          <i class="fa-solid fa-cloud-arrow-down text-lg"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-white">작성 중인 보고서 발견</h3>
+          <p class="text-[10px] text-slate-400">브라우저 자동 저장소에 임시 데이터가 존재합니다.</p>
+        </div>
+      </div>
+      
+      <p class="text-xs text-slate-300 leading-relaxed">
+        이전 세션에서 인터넷 끊김, 새로고침 등으로 작성 중이던 보고서 초안이 존재합니다. 
+        이전 데이터를 불러와 이어서 작성하시겠습니까?
+      </p>
+      
+      <div class="bg-brand-dark/50 border border-brand-accent/30 rounded-xl p-3 text-[11px] text-slate-400 space-y-1">
+        <div>• <strong>대상 기관:</strong> <span id="recoveryOrgText"></span></div>
+        <div>• <strong>수행 일자:</strong> <span id="recoveryDateText"></span></div>
+        <div>• <strong>점검 내역:</strong> <span id="recoveryCountText"></span>개 항목</div>
+      </div>
+      
+      <div class="flex justify-end space-x-2">
+        <button onclick="discardRecovery()" class="px-4 py-2.5 rounded-xl bg-brand-dark border border-brand-accent hover:bg-slate-800 text-slate-400 text-xs font-semibold">새로 작성</button>
+        <button onclick="applyRecovery()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-brand-primary to-cyan-500 hover:from-cyan-400 hover:to-brand-primary text-brand-dark text-xs font-black shadow-md shadow-brand-primary/20">복원하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Battery Saving Screen Saver Overlay -->
+  <div id="batterySaverOverlay" class="hidden fixed inset-0 bg-[#030712] z-[100] flex flex-col items-center justify-center cursor-pointer select-none">
+    <div class="text-center space-y-4 p-6">
+      <div class="relative w-24 h-24 mx-auto flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping"></div>
+        <div class="w-16 h-16 rounded-full bg-emerald-950 border border-emerald-500/30 flex items-center justify-center">
+          <i class="fa-solid fa-bolt-lightning text-emerald-400 text-2xl animate-pulse"></i>
+        </div>
+      </div>
+      <div class="space-y-1">
+        <p class="text-emerald-400 font-bold text-sm tracking-wide">🔋 배터리 절전 모드가 활성화되었습니다</p>
+        <p class="text-slate-500 text-[11px]">실시간 녹음 및 WakeLock 동작 중...</p>
+      </div>
+      <p class="text-slate-600 text-[10px] animate-pulse mt-4">화면 아무 곳이나 터치하면 해제됩니다.</p>
+    </div>
+  </div>
+
   <script>
     // --- APP STATE ---
     const state = {
@@ -429,8 +534,15 @@
       capturedPhotos: [],
       
       // Wake Lock API 참조
-      wakeLock: null
+      wakeLock: null,
+
+      // AI 핵심 브리핑 데이터
+      briefing: null
     };
+
+    // 자동 저장 방지 락 (의사결정 완료 전 오버라이트 방지)
+    let isSaveReady = false;
+    let pendingRecoveryData = null;
 
     // --- DOM REFERENCES (Getter style to prevent null exceptions on early parser lifecycle) ---
     const DOM = {
@@ -483,7 +595,8 @@
       get sttInsertModal() { return document.getElementById('sttInsertModal'); },
       get modalArea() { return document.getElementById('modalArea'); },
       get modalCheck() { return document.getElementById('modalCheck'); },
-      get modalAction() { return document.getElementById('modalAction'); }
+      get modalAction() { return document.getElementById('modalAction'); },
+      get batterySaveBtn() { return document.getElementById('batterySaveBtn'); }
     };
 
     // --- TOAST NOTIFICATION ---
@@ -504,6 +617,229 @@
         DOM.toast.classList.remove('opacity-100', 'scale-100');
         DOM.toast.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
       }, 3000);
+    }
+
+    // --- AUTO-SAVE & RECOVERY SYSTEM ---
+    function autoSaveDraft() {
+      if (!isSaveReady) return;
+      const draft = {
+        targetOrg: state.targetOrg,
+        consultingDate: state.consultingDate,
+        timeStart: state.timeStart,
+        timeEnd: state.timeEnd,
+        consultant: state.consultant,
+        purpose: state.purpose,
+        tableData: state.tableData,
+        opinionSummary: state.opinionSummary,
+        opinionNextPlan: state.opinionNextPlan,
+        sttLog: DOM.sttLogArea ? DOM.sttLogArea.value : "",
+        briefing: state.briefing || null
+      };
+      try {
+        localStorage.setItem('HACCP_COACHING_DRAFT', JSON.stringify(draft));
+        showAutoSaveIndicator();
+      } catch (e) {
+        console.error("Auto-save failed:", e);
+      }
+    }
+
+    let autoSaveTimeout = null;
+    function showAutoSaveIndicator() {
+      const badge = document.getElementById('autoSaveBadge');
+      if (!badge) return;
+      
+      badge.classList.remove('hidden');
+      badge.classList.add('inline-flex');
+      
+      if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+      
+      autoSaveTimeout = setTimeout(() => {
+        badge.classList.remove('inline-flex');
+        badge.classList.add('hidden');
+      }, 1500);
+    }
+
+    function checkRecovery() {
+      try {
+        const rawDraft = localStorage.getItem('HACCP_COACHING_DRAFT');
+        if (rawDraft) {
+          const draft = JSON.parse(rawDraft);
+          const hasContent = draft.targetOrg || draft.purpose || (draft.tableData && draft.tableData.length > 0) || draft.sttLog;
+          if (hasContent) {
+            pendingRecoveryData = draft;
+            document.getElementById('recoveryOrgText').textContent = draft.targetOrg || '미지정';
+            document.getElementById('recoveryDateText').textContent = draft.consultingDate || '미지정';
+            document.getElementById('recoveryCountText').textContent = draft.tableData ? draft.tableData.length : 0;
+            
+            const modal = document.getElementById('recoveryModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            setTimeout(() => {
+              modal.querySelector('.bg-brand-card').classList.remove('scale-95');
+              modal.querySelector('.bg-brand-card').classList.add('scale-100');
+            }, 50);
+            return; // keep isSaveReady false until they decide
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse draft recovery data", e);
+      }
+      isSaveReady = true;
+    }
+
+    window.discardRecovery = function() {
+      localStorage.removeItem('HACCP_COACHING_DRAFT');
+      pendingRecoveryData = null;
+      isSaveReady = true;
+      const modal = document.getElementById('recoveryModal');
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+      showToast("새 보고서 작성을 시작합니다.", "info");
+    };
+
+    window.applyRecovery = function() {
+      if (!pendingRecoveryData) return;
+      const draft = pendingRecoveryData;
+      
+      state.targetOrg = draft.targetOrg || "";
+      state.consultingDate = draft.consultingDate || "";
+      state.timeStart = draft.timeStart || "07:00";
+      state.timeEnd = draft.timeEnd || "08:50";
+      state.consultant = draft.consultant || "";
+      state.purpose = draft.purpose || "";
+      state.tableData = draft.tableData || [];
+      state.opinionSummary = draft.opinionSummary || "";
+      state.opinionNextPlan = draft.opinionNextPlan || "";
+      
+      if (draft.briefing) {
+        state.briefing = draft.briefing;
+        renderBriefingCard(draft.briefing);
+      }
+      
+      // Update DOM elements
+      if (DOM.infoTargetOrgSelect) {
+        const selectOptions = Array.from(DOM.infoTargetOrgSelect.options).map(o => o.value);
+        if (selectOptions.includes(state.targetOrg)) {
+          DOM.infoTargetOrgSelect.value = state.targetOrg;
+          DOM.infoTargetOrgInput.classList.add('hidden');
+        } else {
+          DOM.infoTargetOrgSelect.value = "직접입력";
+          DOM.infoTargetOrgInput.value = state.targetOrg;
+          DOM.infoTargetOrgInput.classList.remove('hidden');
+        }
+      }
+      if (DOM.infoDate) DOM.infoDate.value = state.consultingDate;
+      if (DOM.infoTimeStart) DOM.infoTimeStart.value = state.timeStart;
+      if (DOM.infoTimeEnd) DOM.infoTimeEnd.value = state.timeEnd;
+      if (DOM.infoConsultant) DOM.infoConsultant.value = state.consultant;
+      if (DOM.infoPurpose) DOM.infoPurpose.value = state.purpose;
+      if (DOM.opinionSummary) DOM.opinionSummary.value = state.opinionSummary;
+      if (DOM.opinionNextPlan) DOM.opinionNextPlan.value = state.opinionNextPlan;
+      
+      if (draft.sttLog) {
+        DOM.sttLogArea.value = draft.sttLog;
+        finalTranscript = draft.sttLog;
+      }
+      
+      renderTables();
+      
+      isSaveReady = true;
+      pendingRecoveryData = null;
+      
+      const modal = document.getElementById('recoveryModal');
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+      
+      showToast("이전 데이터가 성공적으로 복원되었습니다.", "success");
+    };
+
+    window.resetAllData = function() {
+      if (confirm('작성 중인 모든 내용(녹음, 사진, 표 등)이 초기화됩니다. 계속하시겠습니까?')) {
+        localStorage.removeItem('HACCP_COACHING_DRAFT');
+        window.location.reload();
+      }
+    };
+
+    // --- BATTERY SAVER MODE ---
+    function enableBatterySaver() {
+      const overlay = document.getElementById('batterySaverOverlay');
+      if (overlay) {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        requestWakeLock();
+      }
+    }
+
+    function disableBatterySaver() {
+      const overlay = document.getElementById('batterySaverOverlay');
+      if (overlay) {
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+        showToast("배터리 절전 모드가 해제되었습니다.", "info");
+      }
+    }
+
+    // --- SPEAKER SHORTCUT INSERTION ---
+    window.insertSpeakerTag = function(tag) {
+      const textarea = DOM.sttLogArea;
+      if (!textarea) return;
+      
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const originalText = textarea.value;
+      
+      textarea.value = originalText.substring(0, start) + tag + originalText.substring(end);
+      
+      const newCursorPos = start + tag.length;
+      textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+      
+      finalTranscript = textarea.value;
+      
+      textarea.focus();
+      showToast("화자 태그가 삽입되었습니다.", "info");
+    };
+
+    // --- AI BRIEFING CARD RENDER ---
+    function renderBriefingCard(briefing) {
+      const briefingSection = document.getElementById('aiBriefingSection');
+      const keywordsContainer = document.getElementById('briefingKeywords');
+      const listContainer = document.getElementById('briefingSummaryList');
+      
+      if (!briefingSection || !keywordsContainer || !listContainer) return;
+      
+      keywordsContainer.innerHTML = "";
+      listContainer.innerHTML = "";
+      
+      if (briefing.keywords && briefing.keywords.length > 0) {
+        briefing.keywords.forEach(keyword => {
+          const tag = document.createElement('span');
+          tag.className = "px-2 py-1 rounded-md text-[10px] bg-brand-primary/10 border border-brand-primary/20 text-brand-primary font-bold shadow-sm shadow-brand-primary/5";
+          tag.textContent = `# ${keyword}`;
+          keywordsContainer.appendChild(tag);
+        });
+      } else {
+        keywordsContainer.innerHTML = `<span class="text-slate-500 italic text-[11px]">키워드 없음</span>`;
+      }
+      
+      if (briefing.summaryLines && briefing.summaryLines.length > 0) {
+        briefing.summaryLines.forEach(line => {
+          const item = document.createElement('li');
+          item.className = "flex items-start space-x-2";
+          item.innerHTML = `
+            <span class="text-brand-primary mt-0.5"><i class="fa-solid fa-check-double text-[10px]"></i></span>
+            <span>${escapeHtml(line)}</span>
+          `;
+          listContainer.appendChild(item);
+        });
+      } else {
+        listContainer.innerHTML = `<li class="text-slate-500 italic text-[11px]">요약 정보가 없습니다.</li>`;
+      }
+      
+      briefingSection.classList.remove('hidden');
+      void briefingSection.offsetWidth;
+      briefingSection.classList.remove('scale-95', 'opacity-0');
+      briefingSection.classList.add('scale-100', 'opacity-100');
     }
 
     // --- INITIAL DATA SETUP ---
@@ -565,6 +901,21 @@
       DOM.aiSettingsBtn.addEventListener('click', () => window.openAiSettingsModal());
       DOM.aiSettingsManualBtn.addEventListener('click', () => window.openAiSettingsModal());
       
+      // Battery Save Mode Button & Overlay
+      if (DOM.batterySaveBtn) {
+        DOM.batterySaveBtn.addEventListener('click', enableBatterySaver);
+      }
+      const saverOverlay = document.getElementById('batterySaverOverlay');
+      if (saverOverlay) {
+        saverOverlay.addEventListener('click', disableBatterySaver);
+      }
+
+      // Check recovery draft on startup
+      checkRecovery();
+
+      // Start 5-second auto-save interval
+      setInterval(autoSaveDraft, 5000);
+
       // Load PWA Service Worker
       registerServiceWorker();
     }
@@ -1235,7 +1586,10 @@
 
     async function analyzeTextWithGemini(rawText, apiKey) {
       const systemPrompt = `당신은 20년 경력의 최고 전문가이자 식품안전 및 품질관리(HACCP) 정기 컨설팅 보고서 작성기 AI입니다.
-현장 코칭 중 녹음되거나 입력된 한국어 텍스트(STT 로그)가 주어집니다. 이를 철저히 분석하여 컨설팅 목적(purpose), 주요 점검 사항 테이블 데이터(tableData - 여러 항목을 분석하여 배열 형태로 추출 가능), 총평(summary - 종합 의견), 차후 계획(nextPlan)을 HACCP 컨설턴트 고환석의 매우 전문적이고 깊이 있는 톤앤매너로 구성하여 JSON 형식으로 응답해 주세요.
+현장 코칭 중 녹음되거나 입력된 한국어 텍스트(STT 로그)가 주어집니다. 이를 철저히 분석하여 컨설팅 목적(purpose), 주요 점검 사항 테이블 데이터(tableData - 여러 항목을 분석하여 배열 형태로 추출 가능), 총평(summary - 종합 의견), 차후 계획(nextPlan), 그리고 오늘의 대시보드 브리핑 요약(briefing)을 HACCP 컨설턴트 고환석의 매우 전문적이고 깊이 있는 톤앤매너로 구성하여 JSON 형식으로 응답해 주세요.
+
+만약 입력된 STT 텍스트에 화자 구분이 모호하더라도 대화 정황(문답 구조 등)을 파악하여 점검 내용(check)과 개선 지도 사항(action)에 '컨설턴트 의견:', '업체 답변:' 또는 화자별 상황이 자연스럽게 녹아들도록 문장 구조를 다듬어라.
+
 입력된 내용이 다소 불충분하거나 일상어, 줄임말, 또는 "ㅎㅎㅎㅎ" 같이 극히 짧은 텍스트일지라도, 식품위생 및 HACCP 핵심 관리 기준을 바탕으로 전문가적인 지식(예: 개인위생 관리 양식 보완, 교차오염 방지 대책, 모니터링 기록 관리 등)을 유추 및 보완하여 모든 항목을 빈칸 없이 완성도 높은 전문 문어체 서식용 문장으로 작성해 주세요. 절대 빈칸으로 남겨두지 마십시오.
 
 반드시 지정된 JSON 스키마 형식으로 응답해야 합니다.
@@ -1248,6 +1602,9 @@
    - action (개선 지도 사항): 지적된 문제점을 완벽하게 시정할 수 있는 전문적인 개선 조치 권고 사항을 작성하세요. (예: "~ 작성 기준을 보완하도록 개정 지도함")
 3. summary (총평): 전체 내용을 아우르는 핵심 요약 총평입니다. 20년차 최고 전문가의 시각에서, 현장의 전반적인 수준과 핵심 문제점, 그리고 경영진이 알아야 할 핵심 인사이트를 포함하여 매우 상세하고 논리적으로 3~4개의 불릿 기호(•)와 줄바꿈(\\n)으로 나누어 깊이 있게 작성하세요.
 4. nextPlan (차후 계획): 금일 지적된 사항을 바탕으로 차기 방문 시 재점검할 내용과 향후 업체가 지속가능한 위생 관리를 위해 보완해야 할 방향을 상세하게 제시해 주세요. 3~4개의 불릿 기호(•)와 줄바꿈(\\n)으로 나누어 작성하세요.
+5. briefing (AI 핵심 브리핑 카드 데이터): 웹 대시보드 시각화용 요약입니다.
+   - keywords: 오늘 컨설팅에서 도출된 핵심 키워드 3~4개 (예: ["위해요소", "기록부실", "인수인계"])
+   - summaryLines: 컨설팅 총평 및 핵심 지적사항을 요약한 3줄 요약 문장 배열 (정확히 3개의 문자열을 가진 배열이어야 함)
 
 [STT 원본 텍스트]
 ${rawText}`;
@@ -1269,9 +1626,17 @@ ${rawText}`;
             }
           },
           summary: { type: "STRING" },
-          nextPlan: { type: "STRING" }
+          nextPlan: { type: "STRING" },
+          briefing: {
+            type: "OBJECT",
+            properties: {
+              keywords: { type: "ARRAY", items: { type: "STRING" } },
+              summaryLines: { type: "ARRAY", items: { type: "STRING" } }
+            },
+            required: ["keywords", "summaryLines"]
+          }
         },
-        required: ["purpose", "tableData", "summary", "nextPlan"]
+        required: ["purpose", "tableData", "summary", "nextPlan", "briefing"]
       };
 
       return await generateContentWithGemini(systemPrompt, schema, apiKey);
@@ -1312,7 +1677,16 @@ ${rawText}`;
 • 신규 현장 요원 배치에 따른 현장 위생 수칙 교육 실태 재진단.
 • 화학 물질(소독제 등) 관리대장 정기 작성 상태 점검.`;
 
-      return { purpose, tableData: [{ area, check, action }], summary, nextPlan };
+      const briefing = {
+        keywords: ["현장위생", "보고서생성", "간이분석"],
+        summaryLines: [
+          "실시간 녹음 기록 및 대화 내용을 간이 분석하여 점검 테이블 행을 자동 생성했습니다.",
+          "API 키가 설정되지 않아 로컬 규칙 기반의 간이 분석이 적용되었습니다.",
+          "상단 API 설정 메뉴에서 키를 입력하시면 상세한 AI 요약 및 브리핑이 제공됩니다."
+        ]
+      };
+
+      return { purpose, tableData: [{ area, check, action }], summary, nextPlan, briefing };
     }
 
     function applyAnalysisResult(data) {
@@ -1352,6 +1726,11 @@ ${rawText}`;
       if (data.nextPlan) {
         DOM.opinionNextPlan.value = data.nextPlan;
         state.opinionNextPlan = data.nextPlan;
+      }
+      
+      if (data.briefing) {
+        state.briefing = data.briefing;
+        renderBriefingCard(data.briefing);
       }
     }
 
