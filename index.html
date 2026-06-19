@@ -561,6 +561,10 @@
         console.error("WakeLock initialization failed:", e);
       }
       
+      // AI Settings Modal Triggers
+      DOM.aiSettingsBtn.addEventListener('click', () => window.openAiSettingsModal());
+      DOM.aiSettingsManualBtn.addEventListener('click', () => window.openAiSettingsModal());
+      
       // Load PWA Service Worker
       registerServiceWorker();
     }
@@ -1104,6 +1108,30 @@
     window.closeSttModal = function() {
       DOM.sttInsertModal.classList.remove('flex');
       DOM.sttInsertModal.classList.add('hidden');
+    };
+
+    window.openAiSettingsModal = function() {
+      const savedKey = localStorage.getItem('GEMINI_API_KEY') || "";
+      DOM.aiApiKeyInput.value = savedKey;
+      DOM.aiSettingsModal.classList.remove('hidden');
+      DOM.aiSettingsModal.classList.add('flex');
+    };
+
+    window.closeAiSettingsModal = function() {
+      DOM.aiSettingsModal.classList.remove('flex');
+      DOM.aiSettingsModal.classList.add('hidden');
+    };
+
+    window.saveAiSettings = function() {
+      const keyVal = DOM.aiApiKeyInput.value.trim();
+      if (keyVal) {
+        localStorage.setItem('GEMINI_API_KEY', keyVal);
+        showToast("Gemini API Key가 성공적으로 저장되었습니다.", "success");
+      } else {
+        localStorage.removeItem('GEMINI_API_KEY');
+        showToast("Gemini API Key가 삭제되었습니다. 이제 간이 분석(로컬 엔진)만 가능합니다.", "info");
+      }
+      window.closeAiSettingsModal();
     };
 
     window.confirmSttInsert = function() {
