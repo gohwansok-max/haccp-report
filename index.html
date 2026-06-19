@@ -1075,7 +1075,7 @@
     });
 
     async function analyzeTextWithGemini(rawText, apiKey) {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
       
       const systemPrompt = `당신은 식품안전 및 품질관리(HACCP) 정기 컨설팅 보고서 작성기 AI입니다.
 현장 코칭 중 녹음된 한국어 텍스트(STT 로그)가 주어집니다. 이를 철저히 분석하여 다음 5가지 항목을 HACCP 컨설턴트 고환석의 전문적인 톤앤매너로 재구성하고 요약하세요.
