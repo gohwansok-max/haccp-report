@@ -99,6 +99,11 @@
       <button id="pwaInstallBtn" class="hidden px-3 py-1.5 rounded-lg text-xs bg-brand-primary text-brand-dark font-bold hover:scale-105 transition-all shadow-md shadow-brand-primary/20">
         <i class="fa-solid fa-download mr-1"></i> 앱 설치
       </button>
+      
+      <!-- 전체 초기화 -->
+      <button onclick="if(confirm('작성 중인 모든 내용(녹음, 사진, 표 등)이 초기화됩니다. 계속하시겠습니까?')) window.location.reload();" class="px-3 py-1.5 rounded-lg text-[11px] bg-red-500/10 text-red-400 font-bold hover:bg-red-500/20 transition-all border border-red-500/30 flex items-center shadow-sm">
+        <i class="fa-solid fa-rotate-left mr-1.5"></i> 전체 초기화
+      </button>
       <!-- AI Settings Gear -->
       <button id="aiSettingsBtn" class="p-2 rounded-xl bg-brand-dark border border-brand-accent/50 text-slate-400 hover:text-brand-primary transition-all" title="AI API 설정">
         <i class="fa-solid fa-key"></i>
