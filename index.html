@@ -19,7 +19,7 @@
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   
   <!-- docx.js library (for word generation) -->
-  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 
   <script>
     tailwind.config = {
@@ -1226,6 +1226,9 @@ ${rawText}`;
     });
 
     async function generateDocument() {
+      if (!window.docx) {
+        throw new Error("워드 생성 엔진(docx.js)을 불러오지 못했습니다. 인터넷 연결이나 방화벽 설정을 확인해주세요.");
+      }
       const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ImageRun, HeadingLevel } = window.docx;
       
       // Base64 helper to Uint8Array converter for docx.js images
