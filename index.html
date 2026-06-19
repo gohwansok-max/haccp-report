@@ -583,10 +583,10 @@
             <input type="text" value="${escapeHtml(row.area)}" onchange="updateCell(${index}, 'area', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white">
           </td>
           <td class="p-3">
-            <textarea onchange="updateCell(${index}, 'check', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white resize-y" rows="1">${escapeHtml(row.check)}</textarea>
+            <textarea onchange="updateCell(${index}, 'check', this.value)" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white resize-y" rows="2" style="overflow-y:hidden;">${escapeHtml(row.check)}</textarea>
           </td>
           <td class="p-3">
-            <textarea onchange="updateCell(${index}, 'action', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white resize-y" rows="1">${escapeHtml(row.action)}</textarea>
+            <textarea onchange="updateCell(${index}, 'action', this.value)" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white resize-y" rows="2" style="overflow-y:hidden;">${escapeHtml(row.action)}</textarea>
           </td>
           <td class="p-3 text-center">
             <button onclick="deleteRow(${index})" class="text-rose-400 hover:text-rose-600 transition-colors p-1" title="삭제"><i class="fa-solid fa-trash-can"></i></button>
@@ -719,8 +719,6 @@
       const constraints = {
         video: {
           deviceId: deviceId ? { exact: deviceId } : undefined,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
           facingMode: deviceId ? undefined : 'environment'
         }
       };
@@ -760,13 +758,31 @@
         DOM.shutterAudio.play();
       } catch (e) {}
 
-      // Capture logic via canvas
-      const width = DOM.cameraVideo.videoWidth || 640;
-      const height = DOM.cameraVideo.videoHeight || 480;
+      // Capture logic via canvas - crop to 16:9 from center
+      const videoWidth = DOM.cameraVideo.videoWidth || 640;
+      const videoHeight = DOM.cameraVideo.videoHeight || 480;
       
+      const targetAspect = 16 / 9;
+      const currentAspect = videoWidth / videoHeight;
+      
+      let sourceX = 0;
+      let sourceY = 0;
+      let sourceWidth = videoWidth;
+      let sourceHeight = videoHeight;
+      
+      if (currentAspect > targetAspect) {
+        // Stream is wider than 16:9 (crop sides)
+        sourceWidth = videoHeight * targetAspect;
+        sourceX = (videoWidth - sourceWidth) / 2;
+      } else {
+        // Stream is taller than 16:9 (crop top/bottom)
+        sourceHeight = videoWidth / targetAspect;
+        sourceY = (videoHeight - sourceHeight) / 2;
+      }
+
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = 1280;
+      canvas.height = 720;
       
       const ctx = canvas.getContext('2d');
       // Mirror check (if front camera)
@@ -777,17 +793,17 @@
                        availableCameras[currentCameraIndex].label.toLowerCase().includes('front'));
       
       if (isFront) {
-        ctx.translate(width, 0);
+        ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
       }
       
-      ctx.drawImage(DOM.cameraVideo, 0, 0, width, height);
+      ctx.drawImage(DOM.cameraVideo, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
       
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       state.capturedPhotos.push(dataUrl);
       
       renderThumbnails();
-      showToast("현장 사진이 캡처되었습니다.", "success");
+      showToast("현장 사진이 16:9 비율로 캡처되었습니다.", "success");
     });
 
     function renderThumbnails() {
@@ -965,20 +981,74 @@
     });
 
     // Send to Table flow
-    DOM.sendToTableBtn.addEventListener('click', () => {
+    DOM.sendToTableBtn.addEventListener('click', async () => {
       const activeText = DOM.sttLogArea.value || "";
       if (!activeText.trim()) {
         showToast("추가할 텍스트가 없습니다. 녹음을 먼저 진행해 주세요.", "error");
         return;
       }
       
-      // Open modal with text pre-filled in 'check' area
-      DOM.modalArea.value = "";
-      DOM.modalCheck.value = activeText.trim();
-      DOM.modalAction.value = "";
+      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      if (!apiKey) {
+        // Fallback
+        DOM.modalArea.value = "현장 위생 및 서류 점검";
+        DOM.modalCheck.value = activeText.trim();
+        DOM.modalAction.value = "해당 사항 보완 권고";
+        DOM.sttInsertModal.classList.remove('hidden');
+        DOM.sttInsertModal.classList.add('flex');
+        return;
+      }
+
+      DOM.sendToTableBtn.disabled = true;
+      const originalHtml = DOM.sendToTableBtn.innerHTML;
+      DOM.sendToTableBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i>분류 중...`;
       
-      DOM.sttInsertModal.classList.remove('hidden');
-      DOM.sttInsertModal.classList.add('flex');
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+        const prompt = `다음 현장 코칭 STT 내용을 바탕으로, 표에 들어갈 '진단 서류 및 영역', '점검 내용(현황 및 문제점)', '개선 지도 사항'을 추출하세요.
+[STT 내용] ${activeText}`;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: {
+                type: "OBJECT",
+                properties: {
+                  area: { type: "STRING" },
+                  check: { type: "STRING" },
+                  action: { type: "STRING" }
+                },
+                required: ["area", "check", "action"]
+              }
+            }
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || "API 오류");
+        const resObj = JSON.parse(data.candidates[0].content.parts[0].text);
+        
+        DOM.modalArea.value = resObj.area || "현장 위생 및 서류 점검";
+        DOM.modalCheck.value = resObj.check || activeText.trim();
+        DOM.modalAction.value = resObj.action || "해당 사항 보완 권고";
+        
+        DOM.sttInsertModal.classList.remove('hidden');
+        DOM.sttInsertModal.classList.add('flex');
+        showToast("AI가 내용을 자동으로 분류했습니다.", "success");
+      } catch (err) {
+        console.error(err);
+        showToast("AI 분류 실패. 수동으로 입력해주세요.", "error");
+        DOM.modalArea.value = "현장 위생 및 서류 점검";
+        DOM.modalCheck.value = activeText.trim();
+        DOM.modalAction.value = "해당 사항 보완 권고";
+        DOM.sttInsertModal.classList.remove('hidden');
+        DOM.sttInsertModal.classList.add('flex');
+      } finally {
+        DOM.sendToTableBtn.disabled = false;
+        DOM.sendToTableBtn.innerHTML = originalHtml;
+      }
     });
 
     window.closeSttModal = function() {
@@ -995,62 +1065,26 @@
         showToast("점검 내용은 필수입니다.", "error");
         return;
       }
-
+      
       state.tableData.push({
         no: state.tableData.length + 1,
         area: areaVal,
         check: checkVal,
         action: actionVal
       });
-      
       renderTables();
       closeSttModal();
-      showToast("STT 기록이 점검 내용에 반영되었습니다.", "success");
-      
-      // Auto scroll down to details
-      DOM.mobileCardContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    // --- AI ANALYSIS & SETTINGS EVENTS ---
-    const openSettings = () => {
-      DOM.aiApiKeyInput.value = localStorage.getItem('GEMINI_API_KEY') || "";
-      DOM.aiSettingsModal.classList.remove('hidden');
-      DOM.aiSettingsModal.classList.add('flex');
-    };
-    
-    DOM.aiSettingsBtn.addEventListener('click', openSettings);
-    DOM.aiSettingsManualBtn.addEventListener('click', openSettings);
-    
-    window.closeAiSettingsModal = function() {
-      DOM.aiSettingsModal.classList.remove('flex');
-      DOM.aiSettingsModal.classList.add('hidden');
-    };
-    
-    window.saveAiSettings = function() {
-      const key = DOM.aiApiKeyInput.value.trim();
-      if (!key) {
-        localStorage.removeItem('GEMINI_API_KEY');
-        showToast("API 키가 삭제되었습니다. 오프라인 모드로 분석이 진행됩니다.", "info");
-      } else {
-        localStorage.setItem('GEMINI_API_KEY', key);
-        showToast("Gemini API 키가 저장되었습니다.", "success");
-      }
-      closeAiSettingsModal();
+      showToast("점검 테이블에 추가되었습니다.", "success");
     };
 
     DOM.aiAnalyzeBtn.addEventListener('click', async () => {
-      const rawText = DOM.sttLogArea.value || DOM.sttInterim.textContent || "";
-      if (!rawText.trim()) {
-        showToast("분석할 녹음 텍스트가 없습니다. 내용을 작성해 주세요.", "error");
+      const rawText = DOM.sttLogArea.value.trim();
+      if (!rawText) {
+        showToast("분석할 대화(STT) 내용이 없습니다. 녹음이나 직접 타이핑을 해주세요.", "error");
         return;
       }
       
       const apiKey = localStorage.getItem('GEMINI_API_KEY');
-      if (!apiKey) {
-        showToast("AI 분석을 위해 Gemini API Key가 먼저 등록되어야 합니다. 설정 창을 엽니다.", "info");
-        setTimeout(openSettings, 800);
-        return;
-      }
       
       DOM.aiAnalyzeBtn.disabled = true;
       const originalBtnHtml = DOM.aiAnalyzeBtn.innerHTML;
@@ -1070,7 +1104,7 @@
         
       } catch (err) {
         console.error("AI Analysis Error: ", err);
-        showToast("AI 분석 실패. 간이 분석 결과로 대체합니다.", "error");
+        showToast(`AI 분석 실패: ${err.message}`, "error");
         const result = runFallbackParser(rawText);
         applyAnalysisResult(result);
       } finally {
@@ -1645,6 +1679,15 @@ ${rawText}`;
           
           // Cell 1
           const imgData1 = base64ToUint8Array(state.capturedPhotos[i]);
+          const dim1 = await getImageDimensions(state.capturedPhotos[i]);
+          const aspect1 = dim1.w / dim1.h;
+          let w1 = 300; 
+          let h1 = w1 / aspect1;
+          if (h1 > 200) { 
+            h1 = 200; 
+            w1 = h1 * aspect1; 
+          }
+
           rowChildren.push(
             new TableCell({
               width: { size: 50, type: WidthType.PERCENTAGE },
@@ -1656,7 +1699,7 @@ ${rawText}`;
                   children: [
                     new ImageRun({
                       data: imgData1,
-                      transformation: { width: 260, height: 195 },
+                      transformation: { width: Math.round(w1), height: Math.round(h1) },
                       type: "jpg"
                     })
                   ]
@@ -1673,6 +1716,15 @@ ${rawText}`;
           // Cell 2 (or empty Cell if odd number of photos)
           if (i + 1 < state.capturedPhotos.length) {
             const imgData2 = base64ToUint8Array(state.capturedPhotos[i + 1]);
+            const dim2 = await getImageDimensions(state.capturedPhotos[i + 1]);
+            const aspect2 = dim2.w / dim2.h;
+            let w2 = 300; 
+            let h2 = w2 / aspect2;
+            if (h2 > 200) { 
+              h2 = 200; 
+              w2 = h2 * aspect2; 
+            }
+
             rowChildren.push(
               new TableCell({
                 width: { size: 50, type: WidthType.PERCENTAGE },
@@ -1684,7 +1736,7 @@ ${rawText}`;
                     children: [
                       new ImageRun({
                         data: imgData2,
-                        transformation: { width: 260, height: 195 },
+                        transformation: { width: Math.round(w2), height: Math.round(h2) },
                         type: "jpg"
                       })
                     ]
@@ -1753,6 +1805,19 @@ ${rawText}`;
     }
 
     // --- UTILITIES FOR DOCX ---
+    function getImageDimensions(base64Str) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        };
+        img.onerror = () => {
+          resolve({ w: 640, h: 480 });
+        };
+        img.src = base64Str;
+      });
+    }
+
     function formatDateString(dateStr) {
       if (!dateStr) return "";
       const parts = dateStr.split('-');
