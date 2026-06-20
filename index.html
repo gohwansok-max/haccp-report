@@ -20,6 +20,9 @@
   
   <!-- docx.js library (for word generation) -->
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  
+  <!-- quick-rules.js: AI to Human Humanization Engine -->
+  <script src="./quick-rules.js"></script>
 
   <script>
     tailwind.config = {
@@ -1642,6 +1645,57 @@ ${rawText}`;
       return await generateContentWithGemini(systemPrompt, schema, apiKey);
     }
 
+    // ===== QUICK-RULES HUMANIZATION =====
+    function humanizeGeminoiResponse(responseObj) {
+      // window.AiNotAI가 로드되었으면 윤문 실행
+      if (typeof window.AiNotAI === 'undefined' || !window.AiNotAI.rewriteWithQuickRules) {
+        console.warn('[quick-rules] Not loaded, skipping humanization');
+        return responseObj;
+      }
+
+      const humanized = { ...responseObj };
+
+      // 1. purpose 윤문
+      if (humanized.purpose && typeof humanized.purpose === 'string') {
+        humanized.purpose = window.AiNotAI.rewriteWithQuickRules(humanized.purpose).rewritten;
+      }
+
+      // 2. tableData 윤문 (check, action 필드)
+      if (humanized.tableData && Array.isArray(humanized.tableData)) {
+        humanized.tableData = humanized.tableData.map(row => ({
+          ...row,
+          area: row.area ? window.AiNotAI.rewriteWithQuickRules(row.area).rewritten : row.area,
+          check: row.check ? window.AiNotAI.rewriteWithQuickRules(row.check).rewritten : row.check,
+          action: row.action ? window.AiNotAI.rewriteWithQuickRules(row.action).rewritten : row.action
+        }));
+      }
+
+      // 3. summary 윤문
+      if (humanized.summary && typeof humanized.summary === 'string') {
+        humanized.summary = window.AiNotAI.rewriteWithQuickRules(humanized.summary).rewritten;
+      }
+
+      // 4. nextPlan 윤문
+      if (humanized.nextPlan && typeof humanized.nextPlan === 'string') {
+        humanized.nextPlan = window.AiNotAI.rewriteWithQuickRules(humanized.nextPlan).rewritten;
+      }
+
+      // 5. briefing.summaryLines 윤문
+      if (humanized.briefing && humanized.briefing.summaryLines && Array.isArray(humanized.briefing.summaryLines)) {
+        humanized.briefing.summaryLines = humanized.briefing.summaryLines.map(line =>
+          window.AiNotAI.rewriteWithQuickRules(line).rewritten
+        );
+      }
+
+      console.log('[quick-rules] Humanization completed', {
+        purpose: humanized.purpose?.slice(0, 30),
+        tableDataRows: humanized.tableData?.length,
+        summaryLength: humanized.summary?.length
+      });
+
+      return humanized;
+    }
+
     function runFallbackParser(text) {
       const cleaned = text.trim();
       const sentences = cleaned.split(/[.\n]/).map(s => s.trim()).filter(Boolean);
@@ -1690,17 +1744,20 @@ ${rawText}`;
     }
 
     function applyAnalysisResult(data) {
-      if (data.purpose) {
-        DOM.infoPurpose.value = data.purpose;
-        state.purpose = data.purpose;
+      // 🆕 quick-rules 윤문 적용
+      const humanizedData = humanizeGeminoiResponse(data);
+      
+      if (humanizedData.purpose) {
+        DOM.infoPurpose.value = humanizedData.purpose;
+        state.purpose = humanizedData.purpose;
       }
       
-      if (data.tableData && Array.isArray(data.tableData)) {
+      if (humanizedData.tableData && Array.isArray(humanizedData.tableData)) {
         // Clear empty placeholder rows if any before adding
         if (state.tableData.length === 1 && !state.tableData[0].area && !state.tableData[0].check) {
           state.tableData = [];
         }
-        data.tableData.forEach(row => {
+        humanizedData.tableData.forEach(row => {
           state.tableData.push({
             no: state.tableData.length + 1,
             area: row.area || "기타 현장 코칭",
@@ -1708,29 +1765,29 @@ ${rawText}`;
             action: row.action || "해당 사항 보완 조치 권고"
           });
         });
-      } else if (data.area || data.check || data.action) {
+      } else if (humanizedData.area || humanizedData.check || humanizedData.action) {
         state.tableData.push({
           no: state.tableData.length + 1,
-          area: data.area || "기타 현장 코칭",
-          check: data.check || "",
-          action: data.action || "해당 사항 보완 조치 권고"
+          area: humanizedData.area || "기타 현장 코칭",
+          check: humanizedData.check || "",
+          action: humanizedData.action || "해당 사항 보완 조치 권고"
         });
       }
       renderTables();
       
-      if (data.summary) {
-        DOM.opinionSummary.value = data.summary;
-        state.opinionSummary = data.summary;
+      if (humanizedData.summary) {
+        DOM.opinionSummary.value = humanizedData.summary;
+        state.opinionSummary = humanizedData.summary;
       }
       
-      if (data.nextPlan) {
-        DOM.opinionNextPlan.value = data.nextPlan;
-        state.opinionNextPlan = data.nextPlan;
+      if (humanizedData.nextPlan) {
+        DOM.opinionNextPlan.value = humanizedData.nextPlan;
+        state.opinionNextPlan = humanizedData.nextPlan;
       }
       
-      if (data.briefing) {
-        state.briefing = data.briefing;
-        renderBriefingCard(data.briefing);
+      if (humanizedData.briefing) {
+        state.briefing = humanizedData.briefing;
+        renderBriefingCard(humanizedData.briefing);
       }
     }
 
