@@ -1,11 +1,12 @@
-const CACHE_NAME = 'haccp-consultant-v2';
+const CACHE_NAME = 'haccp-consultant-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
   './icon.png',
+  './quick-rules.js',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://unpkg.com/docx@8.5.0/build/index.js'
+  'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js'
 ];
 
 self.addEventListener('install', (e) => {

@@ -160,8 +160,14 @@
           </div>
         </div>
 
-        <!-- 컨설턴트 정보 -->
+        <!-- 참석자 -->
         <div>
+          <label class="block text-xs text-slate-400 font-semibold mb-1">참석자</label>
+          <input id="infoParticipants" type="text" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" placeholder="예: 공장장, 품질팀장 등">
+        </div>
+
+        <!-- 컨설턴트 정보 (Full Width) -->
+        <div class="md:col-span-2">
           <label class="block text-xs text-slate-400 font-semibold mb-1">컨설턴트</label>
           <input id="infoConsultant" type="text" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" value="고환석 (식품안전·품질관리 전문가 / 식품생명공학 석사 / 식품 대기업 20년 근무)">
         </div>
@@ -178,7 +184,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       
       <!-- 중앙 왼쪽: STT 녹음 제어 컨트롤러 -->
-      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[400px]">
+      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[500px]">
         <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
           <div class="flex items-center space-x-2">
             <i class="fa-solid fa-microphone text-brand-primary"></i>
@@ -188,8 +194,8 @@
         </div>
 
         <!-- STT 로그 뷰어 (수동 타이핑 겸용 큼직한 Textarea로 변경) -->
-        <div class="flex-grow bg-brand-dark border border-brand-accent/40 rounded-xl p-3 mb-3 flex flex-col justify-between overflow-hidden">
-          <textarea id="sttLogArea" class="w-full flex-grow bg-transparent border-0 focus:ring-0 outline-none text-slate-200 text-sm leading-relaxed resize-none p-1 placeholder-slate-500" placeholder="이곳에 직접 현장 코칭 내용을 타이핑하시거나, 왼쪽의 [녹음 시작] 버튼을 누르고 말씀하시면 실시간으로 누적됩니다."></textarea>
+        <div class="flex-grow bg-brand-dark border border-brand-accent/40 rounded-xl p-3 mb-3 flex flex-col justify-between overflow-y-auto min-h-[220px]">
+          <textarea id="sttLogArea" class="w-full flex-grow bg-transparent border-0 focus:ring-0 outline-none text-slate-200 text-sm leading-relaxed resize-y p-1 placeholder-slate-500 min-h-[160px]" placeholder="이곳에 직접 현장 코칭 내용을 타이핑하시거나, 왼쪽의 [녹음 시작] 버튼을 누르고 말씀하시면 실시간으로 누적됩니다."></textarea>
           <!-- 실시간 음성 수집 중 임시 텍스트(STT 보조) 표시 -->
           <div id="sttInterim" class="text-brand-primary font-medium text-xs italic mt-1 min-h-[16px]"></div>
         </div>
@@ -237,11 +243,23 @@
             </button>
           </div>
 
-          <!-- STT 정제 버튼: 팩트 기반 중복 제거 및 전문 용어 교정 -->
-          <button id="sttRefineBtn" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs border border-teal-600/40 flex items-center justify-center space-x-2 transition-all duration-200" title="STT 원문에서 중복·노이즈 제거, 햇쌀→HACCP 교정, 팩트 기반 3단 요약 생성">
-            <i class="fa-solid fa-broom text-teal-300"></i>
-            <span>STT 정제 (팩트 기반 요약)</span>
-          </button>
+          <!-- 복사, 다운로드 및 불러오기 유틸리티 버튼 -->
+          <div class="flex items-center justify-between space-x-2">
+            <button id="copySttBtn" class="flex-grow py-2.5 px-2 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-[11px] border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="전체 텍스트 클립보드 복사">
+              <i class="fa-solid fa-copy text-brand-primary"></i>
+              <span>복사</span>
+            </button>
+            <button id="downloadSttBtn" class="flex-grow py-2.5 px-2 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-[11px] border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="텍스트 파일로 다운로드">
+              <i class="fa-solid fa-file-arrow-down text-brand-secondary"></i>
+              <span>다운로드</span>
+            </button>
+            <button id="loadTxtBtn" class="flex-grow py-2.5 px-2 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-[11px] border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="TXT 파일 불러오기">
+              <i class="fa-solid fa-file-import text-emerald-400"></i>
+              <span>불러오기</span>
+            </button>
+            <!-- Hidden File Input for TXT file -->
+            <input type="file" id="txtFileInput" accept=".txt" class="hidden">
+          </div>
 
           <!-- API Key 등록 단독 대형 버튼 -->
           <button id="aiSettingsManualBtn" class="w-full py-2.5 px-3 rounded-xl bg-brand-dark hover:bg-slate-800 text-slate-300 font-semibold text-xs border border-brand-accent/30 flex items-center justify-center space-x-2 transition-all duration-200">
@@ -252,7 +270,7 @@
       </section>
 
       <!-- 중앙 오른쪽: 내장 카메라 프리뷰 및 촬영 -->
-      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[400px]">
+      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[500px]">
         <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
           <div class="flex items-center space-x-2">
             <i class="fa-solid fa-camera text-brand-primary"></i>
@@ -284,7 +302,7 @@
           </div>
 
           <!-- 촬영된 사진 썸네일 보관함 (가로 스크롤) -->
-          <div class="h-20 flex-shrink-0">
+          <div class="h-24 flex-shrink-0">
             <div id="photoThumbContainer" class="flex space-x-2 overflow-x-auto h-full pb-1 items-center">
               <p class="text-[11px] text-slate-500 italic text-center w-full">촬영된 현장 사진이 없습니다.</p>
             </div>
@@ -441,28 +459,6 @@
     </div>
   </div>
 
-  <!-- STT 정제 결과 모달 -->
-  <div id="sttRefineModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-brand-card border border-teal-600/30 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between border-b border-brand-accent/20 px-5 py-3 flex-shrink-0">
-        <div class="flex items-center space-x-2">
-          <i class="fa-solid fa-broom text-teal-400"></i>
-          <h3 class="text-sm font-bold text-white">STT 정제 결과</h3>
-          <span class="text-[10px] text-slate-500 font-normal">팩트 기반 · 중복 제거 · 용어 교정</span>
-        </div>
-        <button onclick="closeSttRefineModal()" class="text-slate-400 hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div id="sttRefineContent" class="flex-grow overflow-y-auto px-5 py-4 text-[13px] text-slate-200 leading-relaxed whitespace-pre-wrap"></div>
-      <div class="border-t border-brand-accent/20 px-5 py-3 flex justify-end space-x-2 flex-shrink-0">
-        <button onclick="copySttRefineResult()" class="px-4 py-2 rounded-lg bg-teal-700 hover:bg-teal-600 text-white text-xs font-semibold flex items-center space-x-1.5 transition-colors">
-          <i class="fa-solid fa-copy"></i>
-          <span>클립보드 복사</span>
-        </button>
-        <button onclick="closeSttRefineModal()" class="px-4 py-2 rounded-lg bg-brand-dark border border-brand-accent hover:bg-slate-800 text-slate-400 text-xs font-semibold transition-colors">닫기</button>
-      </div>
-    </div>
-  </div>
-
   <!-- AI 설정 모달 창 -->
   <div id="aiSettingsModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="bg-brand-card border border-brand-accent/30 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4">
@@ -552,6 +548,7 @@
       timeStart: "07:00",
       timeEnd: "08:50",
       consultant: "고환석 (식품안전·품질관리 전문가 / 식품생명공학 석사 / 식품 대기업 20년 근무)",
+      participants: "",
       purpose: "",
       
       // 테이블 정형 데이터
@@ -583,6 +580,7 @@
       get infoTimeStart() { return document.getElementById('infoTimeStart'); },
       get infoTimeEnd() { return document.getElementById('infoTimeEnd'); },
       get infoConsultant() { return document.getElementById('infoConsultant'); },
+      get infoParticipants() { return document.getElementById('infoParticipants'); },
       get infoPurpose() { return document.getElementById('infoPurpose'); },
       
       get sttRecordBtn() { return document.getElementById('sttRecordBtn'); },
@@ -594,12 +592,15 @@
       get sendToPurposeBtn() { return document.getElementById('sendToPurposeBtn'); },
       get sendToTableBtn() { return document.getElementById('sendToTableBtn'); },
       get clearSttBtn() { return document.getElementById('clearSttBtn'); },
+      get copySttBtn() { return document.getElementById('copySttBtn'); },
+      get downloadSttBtn() { return document.getElementById('downloadSttBtn'); },
+      get loadTxtBtn() { return document.getElementById('loadTxtBtn'); },
+      get txtFileInput() { return document.getElementById('txtFileInput'); },
       get aiSettingsBtn() { return document.getElementById('aiSettingsBtn'); },
       get aiSettingsManualBtn() { return document.getElementById('aiSettingsManualBtn'); },
       get aiSettingsModal() { return document.getElementById('aiSettingsModal'); },
       get aiApiKeyInput() { return document.getElementById('aiApiKeyInput'); },
       get aiAnalyzeBtn() { return document.getElementById('aiAnalyzeBtn'); },
-      get sttRefineBtn() { return document.getElementById('sttRefineBtn'); },
       
       get cameraVideo() { return document.getElementById('cameraVideo'); },
       get cameraCaptureBtn() { return document.getElementById('cameraCaptureBtn'); },
@@ -651,6 +652,61 @@
       }, 3000);
     }
 
+    // --- IndexedDB STORAGE HELPER ENGINE ---
+    const DB_NAME = 'HACCP_Consulting_DB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'drafts';
+
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = (e) => reject(e);
+        request.onsuccess = (e) => resolve(request.result);
+        request.onupgradeneeded = (e) => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+      });
+    }
+
+    function saveDraftToDB(key, data) {
+      return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(data, key);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e);
+        });
+      });
+    }
+
+    function loadDraftFromDB(key) {
+      return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(key);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = (e) => reject(e);
+        });
+      });
+    }
+
+    function removeDraftFromDB(key) {
+      return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.delete(key);
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e);
+        });
+      });
+    }
+
     // --- AUTO-SAVE & RECOVERY SYSTEM ---
     function autoSaveDraft() {
       if (!isSaveReady) return;
@@ -660,19 +716,23 @@
         timeStart: state.timeStart,
         timeEnd: state.timeEnd,
         consultant: state.consultant,
+        participants: state.participants || "",
         purpose: state.purpose,
         tableData: state.tableData,
         opinionSummary: state.opinionSummary,
         opinionNextPlan: state.opinionNextPlan,
         sttLog: DOM.sttLogArea ? DOM.sttLogArea.value : "",
-        briefing: state.briefing || null
+        briefing: state.briefing || null,
+        capturedPhotos: state.capturedPhotos || []
       };
-      try {
-        localStorage.setItem('HACCP_COACHING_DRAFT', JSON.stringify(draft));
-        showAutoSaveIndicator();
-      } catch (e) {
-        console.error("Auto-save failed:", e);
-      }
+      
+      saveDraftToDB('HACCP_COACHING_DRAFT', draft)
+        .then(() => {
+          showAutoSaveIndicator();
+        })
+        .catch(e => {
+          console.error("Auto-save to IndexedDB failed:", e);
+        });
     }
 
     let autoSaveTimeout = null;
@@ -691,12 +751,25 @@
       }, 1500);
     }
 
-    function checkRecovery() {
+    async function checkRecovery() {
       try {
-        const rawDraft = localStorage.getItem('HACCP_COACHING_DRAFT');
-        if (rawDraft) {
-          const draft = JSON.parse(rawDraft);
-          const hasContent = draft.targetOrg || draft.purpose || (draft.tableData && draft.tableData.length > 0) || draft.sttLog;
+        // 1. Check for legacy localStorage data and migrate if found
+        const legacyRaw = localStorage.getItem('HACCP_COACHING_DRAFT');
+        if (legacyRaw) {
+          try {
+            const legacyDraft = JSON.parse(legacyRaw);
+            await saveDraftToDB('HACCP_COACHING_DRAFT', legacyDraft);
+            localStorage.removeItem('HACCP_COACHING_DRAFT');
+            console.log("Migrated legacy draft from localStorage to IndexedDB.");
+          } catch (migErr) {
+            console.error("Migration error:", migErr);
+          }
+        }
+
+        // 2. Load draft from IndexedDB
+        const draft = await loadDraftFromDB('HACCP_COACHING_DRAFT');
+        if (draft) {
+          const hasContent = draft.targetOrg || draft.purpose || (draft.tableData && draft.tableData.length > 0) || draft.sttLog || (draft.capturedPhotos && draft.capturedPhotos.length > 0);
           if (hasContent) {
             pendingRecoveryData = draft;
             document.getElementById('recoveryOrgText').textContent = draft.targetOrg || '미지정';
@@ -715,19 +788,25 @@
           }
         }
       } catch (e) {
-        console.error("Failed to parse draft recovery data", e);
+        console.error("Failed to read draft from IndexedDB", e);
       }
       isSaveReady = true;
     }
 
     window.discardRecovery = function() {
-      localStorage.removeItem('HACCP_COACHING_DRAFT');
-      pendingRecoveryData = null;
-      isSaveReady = true;
-      const modal = document.getElementById('recoveryModal');
-      modal.classList.remove('flex');
-      modal.classList.add('hidden');
-      showToast("새 보고서 작성을 시작합니다.", "info");
+      removeDraftFromDB('HACCP_COACHING_DRAFT')
+        .then(() => {
+          pendingRecoveryData = null;
+          isSaveReady = true;
+          const modal = document.getElementById('recoveryModal');
+          modal.classList.remove('flex');
+          modal.classList.add('hidden');
+          showToast("새 보고서 작성을 시작합니다.", "info");
+        })
+        .catch(e => {
+          console.error("Discard recovery failed:", e);
+          isSaveReady = true;
+        });
     };
 
     window.applyRecovery = function() {
@@ -739,6 +818,7 @@
       state.timeStart = draft.timeStart || "07:00";
       state.timeEnd = draft.timeEnd || "08:50";
       state.consultant = draft.consultant || "";
+      state.participants = draft.participants || "";
       state.purpose = draft.purpose || "";
       state.tableData = draft.tableData || [];
       state.opinionSummary = draft.opinionSummary || "";
@@ -765,6 +845,7 @@
       if (DOM.infoTimeStart) DOM.infoTimeStart.value = state.timeStart;
       if (DOM.infoTimeEnd) DOM.infoTimeEnd.value = state.timeEnd;
       if (DOM.infoConsultant) DOM.infoConsultant.value = state.consultant;
+      if (DOM.infoParticipants) DOM.infoParticipants.value = state.participants;
       if (DOM.infoPurpose) DOM.infoPurpose.value = state.purpose;
       if (DOM.opinionSummary) DOM.opinionSummary.value = state.opinionSummary;
       if (DOM.opinionNextPlan) DOM.opinionNextPlan.value = state.opinionNextPlan;
@@ -772,6 +853,11 @@
       if (draft.sttLog) {
         DOM.sttLogArea.value = draft.sttLog;
         finalTranscript = draft.sttLog;
+      }
+
+      if (draft.capturedPhotos) {
+        state.capturedPhotos = draft.capturedPhotos;
+        renderThumbnails();
       }
       
       renderTables();
@@ -788,8 +874,15 @@
 
     window.resetAllData = function() {
       if (confirm('작성 중인 모든 내용(녹음, 사진, 표 등)이 초기화됩니다. 계속하시겠습니까?')) {
-        localStorage.removeItem('HACCP_COACHING_DRAFT');
-        window.location.reload();
+        removeDraftFromDB('HACCP_COACHING_DRAFT')
+          .then(() => {
+            localStorage.removeItem('HACCP_COACHING_DRAFT');
+            window.location.reload();
+          })
+          .catch(e => {
+            console.error("Reset failed:", e);
+            window.location.reload();
+          });
       }
     };
 
@@ -908,6 +1001,7 @@
       DOM.infoPurpose.addEventListener('input', (e) => state.purpose = e.target.value);
       DOM.opinionSummary.addEventListener('input', (e) => state.opinionSummary = e.target.value);
       DOM.opinionNextPlan.addEventListener('input', (e) => state.opinionNextPlan = e.target.value);
+      DOM.infoParticipants.addEventListener('input', (e) => state.participants = e.target.value);
 
       // Render Tables
       renderTables();
@@ -940,6 +1034,40 @@
       const saverOverlay = document.getElementById('batterySaverOverlay');
       if (saverOverlay) {
         saverOverlay.addEventListener('click', disableBatterySaver);
+      }
+
+      // Copy, Download, and Load STT Buttons
+      if (DOM.copySttBtn) {
+        DOM.copySttBtn.addEventListener('click', copySttToClipboard);
+      }
+      if (DOM.downloadSttBtn) {
+        DOM.downloadSttBtn.addEventListener('click', downloadSttAsFile);
+      }
+      if (DOM.loadTxtBtn && DOM.txtFileInput) {
+        DOM.loadTxtBtn.addEventListener('click', () => {
+          DOM.txtFileInput.click();
+        });
+        DOM.txtFileInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const content = evt.target.result;
+            if (content) {
+              DOM.sttLogArea.value = content;
+              finalTranscript = content;
+              autoSaveDraft();
+              showToast("텍스트 파일이 성공적으로 로드되었습니다.", "success");
+            }
+          };
+          reader.onerror = (err) => {
+            console.error("FileReader error: ", err);
+            showToast("파일을 읽어오는데 실패했습니다.", "error");
+          };
+          reader.readAsText(file, "UTF-8");
+          e.target.value = "";
+        });
       }
 
       // Check recovery draft on startup
@@ -1232,7 +1360,6 @@
       canvas.height = 720;
       
       const ctx = canvas.getContext('2d');
-      // Mirror check (if front camera)
       const currentTrack = cameraStream.getVideoTracks()[0];
       const settings = currentTrack ? currentTrack.getSettings() : {};
       const isFront = settings.facingMode === 'user' || 
@@ -1246,11 +1373,40 @@
       
       ctx.drawImage(tempCanvas, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
       
+      if (isFront) {
+        ctx.scale(-1, 1);
+        ctx.translate(-canvas.width, 0);
+      }
+
+      // Draw location/date watermark on bottom right corner (audit proofing)
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      ctx.fillRect(canvas.width - 450, canvas.height - 75, 430, 65);
+      
+      ctx.font = "bold 20px 'Malgun Gothic', '맑은 고딕', sans-serif";
+      ctx.fillStyle = "#00F0FF";
+      ctx.textAlign = "right";
+      const locStr = state.targetOrg || "HACCP 컨설팅 현장";
+      ctx.fillText(locStr, canvas.width - 30, canvas.height - 45);
+      
+      ctx.font = "16px sans-serif";
+      ctx.fillStyle = "#F1F5F9";
+      const now = new Date();
+      const timeStr = now.getFullYear() + "-" + 
+                      String(now.getMonth() + 1).padStart(2, '0') + "-" + 
+                      String(now.getDate()).padStart(2, '0') + " " + 
+                      String(now.getHours()).padStart(2, '0') + ":" + 
+                      String(now.getMinutes()).padStart(2, '0') + ":" + 
+                      String(now.getSeconds()).padStart(2, '0');
+      ctx.fillText(timeStr, canvas.width - 30, canvas.height - 20);
+
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       state.capturedPhotos.push(dataUrl);
       
       renderThumbnails();
-      showToast("현장 사진이 16:9 비율로 캡처되었습니다.", "success");
+      showToast("현장 사진이 16:9 비율 및 워터마크와 함께 캡처되었습니다.", "success");
+      
+      // Auto-save to phone gallery instantly on capture
+      downloadSinglePhoto(state.capturedPhotos.length - 1);
     });
 
     function renderThumbnails() {
@@ -1263,17 +1419,17 @@
 
       state.capturedPhotos.forEach((photo, index) => {
         const thumb = document.createElement('div');
-        thumb.className = "relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-brand-accent/50 group";
+        thumb.className = "flex-shrink-0 w-24 bg-brand-dark border border-brand-accent/50 rounded-lg overflow-hidden flex flex-col shadow-md";
         thumb.innerHTML = `
-          <img src="${photo}" class="w-full h-full object-cover">
-          <!-- 갤러리 저장용 개별 다운로드 버튼 -->
-          <button onclick="downloadSinglePhoto(${index})" class="absolute bottom-0.5 right-0.5 w-4 h-4 bg-brand-primary rounded-full flex items-center justify-center text-brand-dark text-[8px] hover:bg-cyan-400 transition-colors shadow-md border border-white/20" title="갤러리에 저장">
-            <i class="fa-solid fa-download"></i>
-          </button>
-          <!-- 삭제 버튼 -->
-          <button onclick="deletePhoto(${index})" class="absolute top-0.5 right-0.5 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center text-white text-[8px] hover:bg-red-800 transition-colors shadow-md border border-white/20" title="삭제">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <img src="${photo}" class="w-full h-14 object-cover">
+          <div class="flex border-t border-brand-accent/30 h-8">
+            <button onclick="downloadSinglePhoto(${index})" class="flex-grow bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary text-xs font-bold flex items-center justify-center border-r border-brand-accent/30 transition-all py-1.5" title="스마트폰 갤러리에 저장">
+              <i class="fa-solid fa-download"></i>
+            </button>
+            <button onclick="deletePhoto(${index})" class="flex-grow bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 text-xs font-bold flex items-center justify-center transition-all py-1.5" title="삭제">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
         `;
         DOM.photoThumbContainer.appendChild(thumb);
       });
@@ -1292,20 +1448,203 @@
       const a = document.createElement("a");
       a.href = photoData;
       
-      const dateStr = state.consultingDate.replace(/-/g, "");
-      a.download = `HACCP_Photo_${dateStr}_${index + 1}.jpg`;
+      const rawDate = state.consultingDate || new Date().toISOString().split('T')[0];
+      const dateStr = rawDate.replace(/-/g, "");
+      const orgName = (state.targetOrg || "HACCP").replace(/\s+/g, "_");
+      a.download = `HACCP_Photo_${orgName}_${dateStr}_${index + 1}.jpg`;
       
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      setTimeout(() => {
+        document.body.removeChild(a);
+      }, 100);
       
       showToast(`사진 ${index + 1}이 스마트폰 갤러리에 저장(다운로드)되었습니다.`, "success");
     };
+
+    // --- STT DEDUPLICATION ALGORITHMS ---
+    function normalizeWord(word) {
+      if (!word) return "";
+      return word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").trim().toLowerCase();
+    }
+
+    function deduplicateNewChunk(existingText, newChunk) {
+      const existingWords = existingText.trim().split(/\s+/).filter(Boolean);
+      const newWords = newChunk.trim().split(/\s+/).filter(Boolean);
+      if (existingWords.length === 0) return newChunk;
+      if (newWords.length === 0) return "";
+
+      const maxMatchLen = Math.min(existingWords.length, newWords.length, 30);
+      let matchLen = 0;
+
+      for (let len = maxMatchLen; len >= 1; len--) {
+        let match = true;
+        for (let i = 0; i < len; i++) {
+          const word1 = existingWords[existingWords.length - len + i];
+          const word2 = newWords[i];
+          if (normalizeWord(word1) !== normalizeWord(word2)) {
+            match = false;
+            break;
+          }
+        }
+        if (match) {
+          matchLen = len;
+          break;
+        }
+      }
+
+      if (matchLen > 0) {
+        return newWords.slice(matchLen).join(" ");
+      }
+      return newChunk;
+    }
+
+    function collapseAdjacentDuplicates(text) {
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      let changed = true;
+      
+      while (changed) {
+        changed = false;
+        // Look for adjacent duplicates of size L (from 30 words down to 1 word)
+        for (let L = Math.min(30, Math.floor(words.length / 2)); L >= 1; L--) {
+          let i = 0;
+          while (i + 2 * L <= words.length) {
+            let match = true;
+            for (let offset = 0; offset < L; offset++) {
+              if (normalizeWord(words[i + offset]) !== normalizeWord(words[i + L + offset])) {
+                match = false;
+                break;
+              }
+            }
+            if (match) {
+              words.splice(i + L, L);
+              changed = true;
+              break;
+            }
+            i++;
+          }
+          if (changed) break;
+        }
+      }
+      return words.join(" ");
+    }
+
+    // --- MediaRecorder Audio Backup Variables ---
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioStream = null;
+    let audioChunkTimer = null;
+    let isChunkingRestart = false;
+
+    async function startAudioRecording(isRestart = false) {
+      if (!isRestart) {
+        audioChunks = [];
+        isChunkingRestart = false;
+      }
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn("navigator.mediaDevices is not available for raw audio recording.");
+        return;
+      }
+
+      try {
+        if (!audioStream) {
+          audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+        
+        let options = { mimeType: 'audio/webm' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options = { mimeType: 'audio/ogg' };
+        }
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options = { mimeType: 'audio/mp4' };
+        }
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          options = {};
+        }
+
+        mediaRecorder = new MediaRecorder(audioStream, options);
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            audioChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          if (audioChunks.length > 0) {
+            const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            const orgName = state.targetOrg || "미지정";
+            const dateStr = state.consultingDate ? state.consultingDate.replace(/-/g, "") : new Date().toISOString().slice(0, 10).replace(/-/g, "");
+            const timeStr = new Date().toTimeString().slice(0, 5).replace(/:/g, "");
+            
+            let ext = 'webm';
+            if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('mp4')) ext = 'mp4';
+            else if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('ogg')) ext = 'ogg';
+            else if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('wav')) ext = 'wav';
+            
+            a.download = `HACCP_Audio_${orgName}_${dateStr}_${timeStr}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }, 100);
+            showToast("원본 오디오 파일 청크가 스마트폰에 다운로드되었습니다.", "success");
+          }
+
+          if (isChunkingRestart) {
+            audioChunks = [];
+            isChunkingRestart = false;
+            startAudioRecording(true);
+          } else {
+            if (audioStream) {
+              audioStream.getTracks().forEach(track => track.stop());
+              audioStream = null;
+            }
+          }
+        };
+
+        mediaRecorder.start();
+        console.log("MediaRecorder started recording audio.");
+
+        if (!isRestart) {
+          if (audioChunkTimer) clearInterval(audioChunkTimer);
+          audioChunkTimer = setInterval(() => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+              console.log("10 minutes reached, chunking audio file...");
+              isChunkingRestart = true;
+              mediaRecorder.stop();
+            }
+          }, 600000); // 10 minutes
+        }
+      } catch (err) {
+        console.warn("Failed to start MediaRecorder: ", err);
+        if (!isRestart) {
+          showToast("마이크 지원 오류로 원본 오디오 녹음은 저장되지 않습니다.", "info");
+        }
+      }
+    }
+
+    function stopAudioRecording() {
+      if (audioChunkTimer) {
+        clearInterval(audioChunkTimer);
+        audioChunkTimer = null;
+      }
+      isChunkingRestart = false;
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
 
     // --- STT ENGINE (Web Speech API) ---
     let recognition = null;
     let isRecording = false;
     let finalTranscript = "";
+    let lastProcessedIndex = 0;
 
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1324,6 +1663,7 @@
 
       recognition.onstart = () => {
         isRecording = true;
+        lastProcessedIndex = 0;
         DOM.sttRecordText.textContent = "녹음 중 (터치 시 정지)";
         DOM.sttRecordBtn.classList.remove('from-red-600', 'to-rose-500');
         DOM.sttRecordBtn.classList.add('from-cyan-500', 'to-brand-primary', 'animate-pulse-cyan');
@@ -1331,7 +1671,11 @@
         DOM.sttStatusText.textContent = "실시간 기록 중";
         DOM.sttStatusText.className = "text-[10px] text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full border border-brand-primary/30 animate-pulse";
         
-        // Request Screen Keep-Alive
+        // Start raw audio recording
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+          startAudioRecording();
+        }
+
         requestWakeLock();
       };
 
@@ -1346,8 +1690,8 @@
       };
 
       recognition.onend = () => {
-        // Auto restart if continuous coaching is intended and we didn't press stop
         if (isRecording) {
+          finalTranscript = DOM.sttLogArea.value || "";
           recognition.start();
         } else {
           stopRecordingState();
@@ -1356,18 +1700,31 @@
 
       recognition.onresult = (event) => {
         let interimTranscript = "";
+        let hasNewFinal = false;
         
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        for (let i = lastProcessedIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript + " ";
+            const chunk = event.results[i][0].transcript.trim();
+            if (chunk) {
+              const cleanedChunk = deduplicateNewChunk(finalTranscript, chunk);
+              if (cleanedChunk) {
+                finalTranscript = finalTranscript.trim() + (finalTranscript.trim() ? " " : "") + cleanedChunk + " ";
+                finalTranscript = collapseAdjacentDuplicates(finalTranscript) + " ";
+              }
+            }
+            lastProcessedIndex = i + 1;
+            hasNewFinal = true;
           } else {
             interimTranscript += event.results[i][0].transcript;
           }
         }
 
-        DOM.sttLogArea.value = finalTranscript;
+        if (hasNewFinal) {
+          DOM.sttLogArea.value = finalTranscript.trim();
+          DOM.sttLogArea.scrollTop = DOM.sttLogArea.scrollHeight;
+          autoSaveDraft();
+        }
         DOM.sttInterim.textContent = interimTranscript;
-        DOM.sttLogArea.scrollTop = DOM.sttLogArea.scrollHeight;
       };
     }
 
@@ -1381,6 +1738,7 @@
       DOM.sttStatusText.className = "text-[10px] text-amber-400 bg-amber-950/20 px-2 py-0.5 rounded-full border border-amber-800/30";
       DOM.sttInterim.textContent = "";
       
+      stopAudioRecording();
       releaseWakeLock();
     }
 
@@ -1390,6 +1748,7 @@
       if (isRecording) {
         isRecording = false;
         recognition.stop();
+        stopAudioRecording();
         stopRecordingState();
       } else {
         finalTranscript = DOM.sttLogArea.value || "";
@@ -1401,6 +1760,89 @@
     DOM.sttLogArea.addEventListener('input', (e) => {
       finalTranscript = e.target.value;
     });
+
+    // --- Robust Copy & Download Functions ---
+    function copySttToClipboard() {
+      const text = DOM.sttLogArea.value || "";
+      if (!text.trim()) {
+        showToast("복사할 텍스트가 없습니다.", "error");
+        return;
+      }
+      
+      // Modern Clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text)
+          .then(() => {
+            showToast("전체 기록이 클립보드에 복사되었습니다.", "success");
+          })
+          .catch(err => {
+            console.error("Clipboard API failed, falling back:", err);
+            fallbackCopyText(text);
+          });
+      } else {
+        fallbackCopyText(text);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.top = "0";
+        textarea.style.left = "0";
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+        
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        
+        if (successful) {
+          showToast("전체 기록이 클립보드에 복사되었습니다. (대체 방식)", "success");
+        } else {
+          showToast("클립보드 복사에 실패했습니다. 수동 복사 또는 다운로드 버튼을 이용해 주세요.", "error");
+        }
+      } catch (err) {
+        console.error("Fallback copy failed:", err);
+        showToast("클립보드 복사에 실패했습니다. 다운로드 버튼을 이용해 주세요.", "error");
+      }
+    }
+
+    function downloadSttAsFile() {
+      const text = DOM.sttLogArea.value || "";
+      if (!text.trim()) {
+        showToast("다운로드할 텍스트가 없습니다.", "error");
+        return;
+      }
+
+      try {
+        const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement("a");
+        a.href = url;
+        
+        const orgName = state.targetOrg || "미지정";
+        const dateStr = state.consultingDate ? state.consultingDate.replace(/-/g, "") : new Date().toISOString().slice(0,10).replace(/-/g, "");
+        a.download = `STT_Coaching_Log_${orgName}_${dateStr}.txt`;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+        
+        showToast("STT 기록이 TXT 파일로 다운로드되었습니다.", "success");
+      } catch (err) {
+        console.error("Download failed:", err);
+        showToast("다운로드에 실패했습니다.", "error");
+      }
+    }
 
     DOM.clearSttBtn.addEventListener('click', () => {
       finalTranscript = "";
@@ -1725,107 +2167,6 @@ ${rawText}`;
       return humanized;
     }
 
-    // ===== STT 정제: 팩트 기반 중복 제거 · 용어 교정 · 3단 요약 =====
-    async function refineSTTWithGemini(rawText, apiKey) {
-      const systemPrompt = `당신은 20년 경력의 베테랑 식품안전 및 품질관리(HACCP, FSSC 22000) 전문가이자, 핵심을 정확하게 짚어내는 수석 비즈니스 분석가입니다. 정제되지 않은 구어체 음성 녹음 텍스트(STT)에서 노이즈와 중복을 완벽히 제거하고, 식품안전 전문 용어의 문맥을 올바르게 파악하여 신뢰성 높은 비즈니스 요약 문서를 작성합니다.
-
-[핵심 지침]
-1. 팩트 중심 (Strict Fact-Checking): 제공된 텍스트에 없는 내용을 절대 임의로 지어내거나 추측하여 추가하지 마십시오. 오직 발화된 사실(Fact)에만 기반하여 요약하고 다듬으십시오.
-2. STT 중복 제거: 시스템 오류로 인해 동일한 단어나 문장이 2번 이상 반복 기재된 중복 표현을 찾아내어 자연스러운 하나의 문장으로 정제하십시오.
-3. 식품 전문 용어 교정 (Context Correction): 문맥상 식품안전 및 품질관리와 관련된 내용임에도 STT 오류로 '햅쌀', '햇쌀' 등으로 잘못 변환된 단어가 있다면 'HACCP(해썹)'으로 정확히 교정하십시오. 임의로 곡류가공품 등에 대한 소설을 쓰지 마십시오.
-4. 톤앤매너: 정중하고 전문적인 비즈니스 명조/개조식 톤(~함, ~임 또는 ~했습니다)을 사용하십시오.
-5. 가독성: 전체 내용을 한눈에 볼 수 있는 '요약'과 세부 '핵심 정리'로 나누어 구조화하십시오.
-
-[출력 형식 - 아래 구조를 정확히 따르십시오. 절대 다른 형식으로 출력하지 마십시오]
-
-[1. 한 줄 핵심 요약]
-전체 녹음 내용의 핵심을 관통하는 한 줄 요약
-
-[2. 주요 내용 정리 (Fact-Based)]
-주제별 또는 시간 흐름별 핵심 사실 관계 정리 (중복 제거 및 용어 교정 반영, 개조식 bullet point로 작성)
-
-[3. 향후 조치 및 시사점]
-언급된 내용 중 대외적으로 강조하거나 후속 관리가 필요한 포인트 정리 (개조식 bullet point로 작성)
-
-[STT 원본 텍스트]
-${rawText}`;
-
-      const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
-      let lastError = null;
-
-      for (const model of models) {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        try {
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: systemPrompt }] }],
-              generationConfig: { temperature: 0.1 }
-            })
-          });
-
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(`HTTP error ${response.status}: ${errData.error?.message || response.statusText}`);
-          }
-
-          const data = await response.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!text) throw new Error("Invalid response structure from Gemini API");
-          return text;
-        } catch (err) {
-          console.warn(`[STT Refine] Model ${model} failed:`, err.message);
-          lastError = err;
-        }
-      }
-
-      throw lastError || new Error("All Gemini models failed");
-    }
-
-    function closeSttRefineModal() {
-      document.getElementById('sttRefineModal').classList.add('hidden');
-    }
-
-    function copySttRefineResult() {
-      const content = document.getElementById('sttRefineContent').innerText;
-      navigator.clipboard.writeText(content).then(() => {
-        showToast("정제 결과가 클립보드에 복사되었습니다.", "success");
-      }).catch(() => {
-        showToast("복사 실패 — 텍스트를 직접 선택하여 복사해 주세요.", "error");
-      });
-    }
-
-    DOM.sttRefineBtn.addEventListener('click', async () => {
-      const rawText = DOM.sttLogArea.value.trim();
-      if (!rawText) {
-        showToast("정제할 STT 내용이 없습니다. 녹음이나 직접 타이핑을 해주세요.", "error");
-        return;
-      }
-
-      const apiKey = localStorage.getItem('GEMINI_API_KEY');
-      if (!apiKey) {
-        showToast("STT 정제는 Gemini API Key가 필요합니다. 먼저 API Key를 등록해 주세요.", "error");
-        return;
-      }
-
-      DOM.sttRefineBtn.disabled = true;
-      const originalBtnHtml = DOM.sttRefineBtn.innerHTML;
-      DOM.sttRefineBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i><span>정제 중...</span>`;
-
-      try {
-        const refinedText = await refineSTTWithGemini(rawText, apiKey);
-        document.getElementById('sttRefineContent').textContent = refinedText;
-        document.getElementById('sttRefineModal').classList.remove('hidden');
-      } catch (err) {
-        console.error("[STT Refine] Error:", err);
-        showToast(`STT 정제 실패: ${err.message}`, "error");
-      } finally {
-        DOM.sttRefineBtn.disabled = false;
-        DOM.sttRefineBtn.innerHTML = originalBtnHtml;
-      }
-    });
-
     function runFallbackParser(text) {
       const cleaned = text.trim();
       const sentences = cleaned.split(/[.\n]/).map(s => s.trim()).filter(Boolean);
@@ -2081,6 +2422,23 @@ ${rawText}`;
                 columnSpan: 3,
                 borders: cellBorders,
                 children: [new Paragraph({ children: [new TextRun({ text: state.targetOrg, size: 20, font: mainFont })] })]
+              })
+            ]
+          }),
+          // Row 3 (참석자)
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "F1F5F9" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "참석자", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 85, type: WidthType.PERCENTAGE },
+                columnSpan: 3,
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: state.participants || "", size: 20, font: mainFont })] })]
               })
             ]
           }),
