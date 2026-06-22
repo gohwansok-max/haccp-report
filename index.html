@@ -123,9 +123,15 @@
 
     <!-- 1. 컨설팅 기본 정보 섹션 -->
     <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl">
-      <div class="flex items-center space-x-2 mb-4 border-b border-brand-accent/30 pb-2">
-        <i class="fa-solid fa-circle-info text-brand-primary"></i>
-        <h2 class="text-sm font-bold text-white tracking-wide">1. 컨설팅 기본 정보 입력</h2>
+      <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-circle-info text-brand-primary"></i>
+          <h2 class="text-sm font-bold text-white tracking-wide">1. 컨설팅 기본 정보 입력</h2>
+        </div>
+        <button id="loadPrevSessionBtn" type="button" class="px-2.5 py-1.5 rounded-lg text-xs bg-brand-primary/10 border border-brand-primary/30 text-brand-primary hover:bg-brand-primary/20 font-bold flex items-center space-x-1 transition-all">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>지난 회차 미결사항 불러오기</span>
+        </button>
       </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -176,6 +182,43 @@
         <div class="md:col-span-2">
           <label class="block text-xs text-slate-400 font-semibold mb-1">컨설팅 목적</label>
           <textarea id="infoPurpose" rows="2" class="bg-brand-dark border border-brand-accent text-brand-text rounded-xl focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none p-3 w-full text-sm" placeholder="음성 기록에서 목적을 발췌하거나 직접 입력하세요."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1.5 개선 이행 여부 점검표 (이전 회차 지적사항 반영) -->
+    <section id="prevHistorySection" class="hidden bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl">
+      <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-clock-rotate-left text-brand-primary"></i>
+          <h2 class="text-sm font-bold text-white tracking-wide">이전 회차 지적사항 이행 점검표</h2>
+        </div>
+        <button onclick="clearHistoryChecklist()" class="px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] font-bold border border-red-500/30 flex items-center transition-all">
+          <i class="fa-solid fa-trash-can mr-1.5"></i>
+          <span>비우기</span>
+        </button>
+      </div>
+      
+      <div class="w-full overflow-x-auto">
+        <!-- 데스크톱용 테이블 뷰 -->
+        <table class="hidden md:table w-full text-xs text-left border-collapse">
+          <thead>
+            <tr class="bg-brand-dark border-b border-brand-accent/40 text-slate-300 font-bold uppercase">
+              <th class="p-3 w-12 text-center">No.</th>
+              <th class="p-3 w-[180px]">진단 서류 및 영역</th>
+              <th class="p-3">이전 지적사항 (개선 지도 내용)</th>
+              <th class="p-3 w-[260px] text-center">금일 이행 여부</th>
+              <th class="p-3">금일 현장 확인 내용</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody" class="divide-y divide-brand-accent/20">
+            <!-- JS에서 동적 바인딩 -->
+          </tbody>
+        </table>
+        
+        <!-- 모바일 최적화 카드 뷰 -->
+        <div id="historyMobileContainer" class="block md:hidden space-y-4">
+          <!-- JS에서 동적 바인딩 -->
         </div>
       </div>
     </section>
@@ -565,7 +608,10 @@
       wakeLock: null,
 
       // AI 핵심 브리핑 데이터
-      briefing: null
+      briefing: null,
+
+      // 이전 회차 이행 점검표
+      historyChecklist: []
     };
 
     // 자동 저장 방지 락 (의사결정 완료 전 오버라이트 방지)
@@ -582,6 +628,10 @@
       get infoConsultant() { return document.getElementById('infoConsultant'); },
       get infoParticipants() { return document.getElementById('infoParticipants'); },
       get infoPurpose() { return document.getElementById('infoPurpose'); },
+      get loadPrevSessionBtn() { return document.getElementById('loadPrevSessionBtn'); },
+      get prevHistorySection() { return document.getElementById('prevHistorySection'); },
+      get historyTableBody() { return document.getElementById('historyTableBody'); },
+      get historyMobileContainer() { return document.getElementById('historyMobileContainer'); },
       
       get sttRecordBtn() { return document.getElementById('sttRecordBtn'); },
       get sttRecordIcon() { return document.getElementById('sttRecordIcon'); },
@@ -723,7 +773,8 @@
         opinionNextPlan: state.opinionNextPlan,
         sttLog: DOM.sttLogArea ? DOM.sttLogArea.value : "",
         briefing: state.briefing || null,
-        capturedPhotos: state.capturedPhotos || []
+        capturedPhotos: state.capturedPhotos || [],
+        historyChecklist: state.historyChecklist || []
       };
       
       saveDraftToDB('HACCP_COACHING_DRAFT', draft)
@@ -823,6 +874,7 @@
       state.tableData = draft.tableData || [];
       state.opinionSummary = draft.opinionSummary || "";
       state.opinionNextPlan = draft.opinionNextPlan || "";
+      state.historyChecklist = draft.historyChecklist || [];
       
       if (draft.briefing) {
         state.briefing = draft.briefing;
@@ -860,6 +912,12 @@
         renderThumbnails();
       }
       
+      if (state.historyChecklist && state.historyChecklist.length > 0) {
+        renderHistoryChecklist();
+      } else {
+        DOM.prevHistorySection.classList.add('hidden');
+      }
+
       renderTables();
       
       isSaveReady = true;
@@ -871,6 +929,216 @@
       
       showToast("이전 데이터가 성공적으로 복원되었습니다.", "success");
     };
+
+    // --- PREVIOUS SESSION TRACKING SYSTEM ---
+    function getAllSessionsFromDB() {
+      return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.getAllKeys();
+          req.onsuccess = () => {
+            const keys = req.result;
+            const promises = keys.map(key => {
+              return new Promise((res) => {
+                const getReq = store.get(key);
+                getReq.onsuccess = () => res({ key, data: getReq.result });
+                getReq.onerror = () => res(null);
+              });
+            });
+            Promise.all(promises).then(results => {
+              resolve(results.filter(Boolean));
+            });
+          };
+          req.onerror = (e) => reject(e);
+        });
+      });
+    }
+
+    async function loadPreviousSessionData() {
+      if (!state.targetOrg) {
+        showToast("대상 기관을 먼저 선택하거나 입력해 주세요.", "error");
+        return;
+      }
+      try {
+        const allEntries = await getAllSessionsFromDB();
+        const matching = allEntries.filter(entry => {
+          return entry.key.startsWith('HACCP_SESSION_') && 
+                 entry.data.targetOrg === state.targetOrg && 
+                 entry.data.consultingDate < state.consultingDate;
+        });
+
+        if (matching.length === 0) {
+          showToast("IndexedDB에 저장된 이전 회차 컨설팅 데이터가 없습니다.", "info");
+          return;
+        }
+
+        matching.sort((a, b) => b.data.consultingDate.localeCompare(a.data.consultingDate));
+        const prevSession = matching[0].data;
+
+        if (!prevSession.tableData || prevSession.tableData.length === 0) {
+          showToast(`이전 회차(${prevSession.consultingDate}) 점검 사항 목록이 비어 있습니다.`, "info");
+          return;
+        }
+
+        state.historyChecklist = prevSession.tableData.map(item => ({
+          no: item.no,
+          area: item.area,
+          check: item.check,
+          action: item.action,
+          status: "완료",
+          notes: ""
+        }));
+
+        renderHistoryChecklist();
+        autoSaveDraft();
+        showToast(`이전 회차(${prevSession.consultingDate}) 지적사항 ${state.historyChecklist.length}건을 성공적으로 불러왔습니다.`, "success");
+      } catch (err) {
+        console.error("Failed to load history:", err);
+        showToast("데이터를 로드하는 도중 오류가 발생했습니다.", "error");
+      }
+    }
+
+    function renderHistoryChecklist() {
+      DOM.historyTableBody.innerHTML = "";
+      DOM.historyMobileContainer.innerHTML = "";
+
+      if (!state.historyChecklist || state.historyChecklist.length === 0) {
+        DOM.prevHistorySection.classList.add('hidden');
+        return;
+      }
+
+      DOM.prevHistorySection.classList.remove('hidden');
+
+      state.historyChecklist.forEach((item, index) => {
+        item.no = index + 1;
+
+        // 1. Desktop Row
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-brand-accent/10 transition-colors duration-150 border-b border-brand-accent/10 text-slate-300";
+        
+        const statuses = ["완료", "미이행", "보완중"];
+        const statusColors = {
+          "완료": "text-green-400 focus:ring-green-400",
+          "미이행": "text-red-400 focus:ring-red-400",
+          "보완중": "text-yellow-400 focus:ring-yellow-400"
+        };
+
+        let radioGroupHtml = `<div class="flex items-center justify-center space-x-3 py-1">`;
+        statuses.forEach(status => {
+          const isChecked = item.status === status ? "checked" : "";
+          radioGroupHtml += `
+            <label class="flex items-center space-x-1.5 cursor-pointer text-xs font-semibold">
+              <input type="radio" name="hist_status_${index}" value="${status}" ${isChecked} 
+                     onchange="updateHistoryItem(${index}, 'status', this.value)" 
+                     class="w-3.5 h-3.5 bg-brand-dark border-brand-accent ${statusColors[status]}">
+              <span>${status}</span>
+            </label>
+          `;
+        });
+        radioGroupHtml += `</div>`;
+
+        tr.innerHTML = `
+          <td class="p-3 text-center font-bold text-slate-400">${item.no}</td>
+          <td class="p-3 font-semibold text-white">${escapeHtml(item.area)}</td>
+          <td class="p-3 leading-relaxed">
+            <div class="text-slate-400 text-[10px] uppercase font-bold">점검내용: ${escapeHtml(item.check)}</div>
+            <div class="text-brand-primary mt-0.5">개선지도: ${escapeHtml(item.action)}</div>
+          </td>
+          <td class="p-3">${radioGroupHtml}</td>
+          <td class="p-3">
+            <input type="text" value="${escapeHtml(item.notes)}" 
+                   onchange="updateHistoryItem(${index}, 'notes', this.value)" 
+                   class="w-full bg-brand-dark border border-brand-accent/50 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none px-2 py-1 rounded text-xs text-white" 
+                   placeholder="금일 확인내역 입력...">
+          </td>
+        `;
+        DOM.historyTableBody.appendChild(tr);
+
+        // 2. Mobile Card
+        const card = document.createElement('div');
+        card.className = "bg-brand-dark/40 border border-brand-accent/20 rounded-xl p-4 space-y-3 relative";
+        
+        let mobRadioGroupHtml = `<div class="flex items-center space-x-4">`;
+        statuses.forEach(status => {
+          const isChecked = item.status === status ? "checked" : "";
+          mobRadioGroupHtml += `
+            <label class="flex items-center space-x-1.5 cursor-pointer text-xs font-semibold">
+              <input type="radio" name="mob_hist_status_${index}" value="${status}" ${isChecked} 
+                     onchange="updateHistoryItem(${index}, 'status', this.value)" 
+                     class="w-3.5 h-3.5 bg-brand-dark border-brand-accent ${statusColors[status]}">
+              <span>${status}</span>
+            </label>
+          `;
+        });
+        mobRadioGroupHtml += `</div>`;
+
+        card.innerHTML = `
+          <div class="flex justify-between items-center border-b border-brand-accent/20 pb-2">
+            <span class="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">이전 지적사항 No. ${item.no}</span>
+            <span class="text-[11px] text-white font-bold">${escapeHtml(item.area)}</span>
+          </div>
+          <div class="space-y-1.5 text-xs">
+            <div><span class="text-slate-500 font-bold block">점검내용</span><p class="text-slate-300 leading-relaxed">${escapeHtml(item.check)}</p></div>
+            <div><span class="text-slate-500 font-bold block">개선지도</span><p class="text-brand-primary leading-relaxed">${escapeHtml(item.action)}</p></div>
+            <div class="pt-2 border-t border-brand-accent/10">
+              <span class="text-slate-500 font-bold block mb-1">이행 여부</span>
+              ${mobRadioGroupHtml}
+            </div>
+            <div class="pt-2">
+              <span class="text-slate-500 font-bold block mb-1">금일 확인 내용</span>
+              <input type="text" value="${escapeHtml(item.notes)}" 
+                     onchange="updateHistoryItem(${index}, 'notes', this.value)" 
+                     class="w-full bg-brand-card border border-brand-accent/50 rounded-lg p-2 focus:border-brand-primary outline-none text-white text-xs" 
+                     placeholder="금일 현장 확인내용...">
+            </div>
+          </div>
+        `;
+        DOM.historyMobileContainer.appendChild(card);
+      });
+    }
+
+    window.updateHistoryItem = function(index, field, value) {
+      if (state.historyChecklist && state.historyChecklist[index]) {
+        state.historyChecklist[index][field] = value;
+        renderHistoryChecklist();
+        autoSaveDraft();
+      }
+    };
+
+    window.clearHistoryChecklist = function() {
+      if (confirm("이전 회차 지적사항 이행 점검표를 비우시겠습니까?")) {
+        state.historyChecklist = [];
+        renderHistoryChecklist();
+        autoSaveDraft();
+        showToast("점검표가 삭제되었습니다.", "info");
+      }
+    };
+
+    async function saveCurrentSessionToHistory() {
+      try {
+        const sessionKey = `HACCP_SESSION_${state.targetOrg.replace(/\s+/g, "_")}_${state.consultingDate}`;
+        const sessionData = {
+          targetOrg: state.targetOrg,
+          consultingDate: state.consultingDate,
+          timeStart: state.timeStart,
+          timeEnd: state.timeEnd,
+          consultant: state.consultant,
+          participants: state.participants,
+          purpose: state.purpose,
+          tableData: state.tableData,
+          opinionSummary: state.opinionSummary,
+          opinionNextPlan: state.opinionNextPlan,
+          sttLog: DOM.sttLogArea ? DOM.sttLogArea.value : "",
+          briefing: state.briefing || null,
+          capturedPhotos: state.capturedPhotos || []
+        };
+        await saveDraftToDB(sessionKey, sessionData);
+        console.log(`Saved session ${sessionKey} to IndexedDB history.`);
+      } catch (err) {
+        console.error("Failed to save current session to history in IndexedDB:", err);
+      }
+    }
 
     window.resetAllData = function() {
       if (confirm('작성 중인 모든 내용(녹음, 사진, 표 등)이 초기화됩니다. 계속하시겠습니까?')) {
@@ -1068,6 +1336,10 @@
           reader.readAsText(file, "UTF-8");
           e.target.value = "";
         });
+      }
+
+      if (DOM.loadPrevSessionBtn) {
+        DOM.loadPrevSessionBtn.addEventListener('click', loadPreviousSessionData);
       }
 
       // Check recovery draft on startup
@@ -2059,8 +2331,24 @@
     }
 
     async function analyzeTextWithGemini(rawText, apiKey) {
+      let historyPromptPart = "";
+      if (state.historyChecklist && state.historyChecklist.length > 0) {
+        historyPromptPart = `
+[이전 회차 지적사항 이행 점검표 정보]
+현재 로드된 이전 회차 지적사항 목록:
+${JSON.stringify(state.historyChecklist.map(item => ({ no: item.no, area: item.area, check: item.check, action: item.action, status: item.status, notes: item.notes })), null, 2)}
+
+위의 '이전 회차 지적사항 목록' 각각에 대해, 아래 [STT 원본 텍스트] 내용을 바탕으로 이행 여부와 금일 확인 내용을 분석해 주세요.
+만약 [STT 원본 텍스트]에서 해당 항목의 이행 여부(완료 / 미이행 / 보완중 중 택1)나 금일 현장 확인 내용이 언급되거나 정황이 파악된다면, 이를 반영하여 'status'와 'notes'를 업데이트해 주십시오.
+언급되지 않았거나 판단할 수 없다면, 기존의 status와 notes 값을 변경하지 말고 그대로 유지해 주십시오.
+반드시 JSON 응답 구조의 'historyChecklist' 필드에 업데이트된 배열을 반환해야 합니다.
+`;
+      }
+
       const systemPrompt = `당신은 20년 경력의 최고 전문가이자 식품안전 및 품질관리(HACCP) 정기 컨설팅 보고서 작성기 AI입니다.
 현장 코칭 중 녹음되거나 입력된 한국어 텍스트(STT 로그)가 주어집니다. 이를 철저히 분석하여 컨설팅 목적(purpose), 주요 점검 사항 테이블 데이터(tableData - 여러 항목을 분석하여 배열 형태로 추출 가능), 총평(summary - 종합 의견), 차후 계획(nextPlan), 그리고 오늘의 대시보드 브리핑 요약(briefing)을 HACCP 컨설턴트 고환석의 매우 전문적이고 깊이 있는 톤앤매너로 구성하여 JSON 형식으로 응답해 주세요.
+
+${historyPromptPart}
 
 만약 입력된 STT 텍스트에 화자 구분이 모호하더라도 대화 정황(문답 구조 등)을 파악하여 점검 내용(check)과 개선 지도 사항(action)에 '컨설턴트 의견:', '업체 답변:' 또는 화자별 상황이 자연스럽게 녹아들도록 문장 구조를 다듬어라.
 
@@ -2079,6 +2367,10 @@
 5. briefing (AI 핵심 브리핑 카드 데이터): 웹 대시보드 시각화용 요약입니다.
    - keywords: 오늘 컨설팅에서 도출된 핵심 키워드 3~4개 (예: ["위해요소", "기록부실", "인수인계"])
    - summaryLines: 컨설팅 총평 및 핵심 지적사항을 요약한 3줄 요약 문장 배열 (정확히 3개의 문자열을 가진 배열이어야 함)
+6. historyChecklist (이전 지적사항 업데이트 - 이전 지적사항이 로드된 경우만 필수):
+   - no: 이전 회차 지적사항의 번호 (Integer)
+   - status: 이전 지적사항 항목에 대해 대화에서 확인된 새로운 이행 상태 ("완료", "미이행", "보완중")
+   - notes: 금일 현장 확인 내용 (예: "양식 보완 후 기록 관리 양호함")
 
 [STT 원본 텍스트]
 ${rawText}`;
@@ -2108,9 +2400,21 @@ ${rawText}`;
               summaryLines: { type: "ARRAY", items: { type: "STRING" } }
             },
             required: ["keywords", "summaryLines"]
+          },
+          historyChecklist: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                no: { type: "INTEGER" },
+                status: { type: "STRING" },
+                notes: { type: "STRING" }
+              },
+              required: ["no", "status", "notes"]
+            }
           }
         },
-        required: ["purpose", "tableData", "summary", "nextPlan", "briefing"]
+        required: ["purpose", "tableData", "summary", "nextPlan", "briefing", "historyChecklist"]
       };
 
       return await generateContentWithGemini(systemPrompt, schema, apiKey);
@@ -2211,7 +2515,7 @@ ${rawText}`;
         ]
       };
 
-      return { purpose, tableData: [{ area, check, action }], summary, nextPlan, briefing };
+      return { purpose, tableData: [{ area, check, action }], summary, nextPlan, briefing, historyChecklist: [] };
     }
 
     function applyAnalysisResult(data) {
@@ -2245,6 +2549,19 @@ ${rawText}`;
         });
       }
       renderTables();
+
+      // 이전 지적사항 이행 여부 AI 분석 데이터 연동
+      if (humanizedData.historyChecklist && Array.isArray(humanizedData.historyChecklist)) {
+        humanizedData.historyChecklist.forEach(updatedItem => {
+          const idx = state.historyChecklist.findIndex(item => item.no === Number(updatedItem.no));
+          if (idx !== -1) {
+            state.historyChecklist[idx].status = updatedItem.status || state.historyChecklist[idx].status;
+            state.historyChecklist[idx].notes = updatedItem.notes || state.historyChecklist[idx].notes;
+          }
+        });
+        renderHistoryChecklist();
+        autoSaveDraft();
+      }
       
       if (humanizedData.summary) {
         DOM.opinionSummary.value = humanizedData.summary;
@@ -2299,6 +2616,7 @@ ${rawText}`;
       
       try {
         await generateDocument();
+        await saveCurrentSessionToHistory();
         showToast("워드 보고서가 성공적으로 다운로드되었습니다.", "success");
       } catch (err) {
         console.error("DOCX Build Failure: ", err);
@@ -2480,6 +2798,126 @@ ${rawText}`;
       });
       children.push(infoTable);
       children.push(new Paragraph({ spacing: { after: 240 } })); // spacer
+
+      // 개선 이행 여부 점검표 (이전 회차 지적사항 반영)
+      if (state.historyChecklist && state.historyChecklist.length > 0) {
+        children.push(
+          new Paragraph({
+            spacing: { before: 240, after: 120 },
+            children: [
+              new TextRun({
+                text: "개선 이행 여부 점검표(이전 회차 지적사항 반영)",
+                bold: true,
+                size: 24, // 12pt
+                font: mainFont,
+                color: "1E293B"
+              })
+            ]
+          })
+        );
+
+        const historyTableRows = [];
+        // Header
+        historyTableRows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 8, type: WidthType.PERCENTAGE },
+                shading: { fill: "E6EEFA" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "No.", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                shading: { fill: "E6EEFA" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "이전 회차 지적사항", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 15, type: WidthType.PERCENTAGE },
+                shading: { fill: "E6EEFA" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "이행 여부", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              }),
+              new TableCell({
+                width: { size: 27, type: WidthType.PERCENTAGE },
+                shading: { fill: "E6EEFA" },
+                borders: cellBorders,
+                children: [new Paragraph({ children: [new TextRun({ text: "금일 현장 확인 내용", bold: true, size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+              })
+            ]
+          })
+        );
+
+        // Body Rows
+        state.historyChecklist.forEach((item, index) => {
+          let statusColor = "1E293B";
+          if (item.status === "완료") statusColor = "10B981";
+          else if (item.status === "미이행") statusColor = "EF4444";
+          else if (item.status === "보완중") statusColor = "F59E0B";
+
+          historyTableRows.push(
+            new TableRow({
+              children: [
+                new TableCell({
+                  width: { size: 8, type: WidthType.PERCENTAGE },
+                  borders: cellBorders,
+                  children: [new Paragraph({ children: [new TextRun({ text: String(index + 1), size: 20, font: mainFont })], alignment: AlignmentType.CENTER })]
+                }),
+                new TableCell({
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: cellBorders,
+                  children: [
+                    new Paragraph({
+                      spacing: { after: 60 },
+                      children: [
+                        new TextRun({ text: `[${item.area}] `, bold: true, size: 20, font: mainFont, color: "1E293B" }),
+                        new TextRun({ text: item.check, size: 20, font: mainFont, color: "475569" })
+                      ]
+                    }),
+                    new Paragraph({
+                      children: [
+                        new TextRun({ text: "개선지도: ", bold: true, size: 20, font: mainFont, color: "0284C7" }),
+                        new TextRun({ text: item.action, size: 20, font: mainFont, color: "0369A1" })
+                      ]
+                    })
+                  ]
+                }),
+                new TableCell({
+                  width: { size: 15, type: WidthType.PERCENTAGE },
+                  borders: cellBorders,
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new TextRun({ text: item.status, bold: true, size: 20, font: mainFont, color: statusColor })
+                      ],
+                      alignment: AlignmentType.CENTER
+                    })
+                  ]
+                }),
+                new TableCell({
+                  width: { size: 27, type: WidthType.PERCENTAGE },
+                  borders: cellBorders,
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new TextRun({ text: item.notes || "-", size: 20, font: mainFont })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          );
+        });
+
+        const historyTable = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: historyTableRows
+        });
+        children.push(historyTable);
+        children.push(new Paragraph({ spacing: { after: 240 } })); // spacer
+      }
 
       // 4. Section 2 Heading
       children.push(
