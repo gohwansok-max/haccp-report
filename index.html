@@ -231,7 +231,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       
       <!-- 중앙 왼쪽: STT 녹음 제어 컨트롤러 -->
-      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[500px]">
+      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col md:h-[500px]">
         <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
           <div class="flex items-center space-x-2">
             <i class="fa-solid fa-microphone text-brand-primary"></i>
@@ -340,7 +340,7 @@
       </section>
 
       <!-- 중앙 오른쪽: 내장 카메라 프리뷰 및 촬영 -->
-      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col h-[500px]">
+      <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl flex flex-col md:h-[500px]">
         <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
           <div class="flex items-center space-x-2">
             <i class="fa-solid fa-camera text-brand-primary"></i>
@@ -355,7 +355,7 @@
         <!-- 카메라 뷰 및 썸네일 통합 컨테이너 -->
         <div class="flex-grow flex flex-col min-h-0 space-y-3">
           <!-- 비디오 화면 영역 -->
-          <div class="relative flex-grow bg-brand-dark rounded-xl overflow-hidden border border-brand-accent/40 flex items-center justify-center shadow-inner">
+          <div class="relative flex-grow min-h-[280px] md:min-h-0 bg-brand-dark rounded-xl overflow-hidden border border-brand-accent/40 flex items-center justify-center shadow-inner">
             <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
             <!-- 캡처 플래시 이펙트용 오버레이 -->
             <div id="flashOverlay" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-100"></div>
