@@ -351,8 +351,12 @@ function rewriteWithQuickRules(text) {
     });
   });
 
-  // 연속 공백 정리
-  result = result.replace(/\s{2,}/g, ' ').trim();
+  // 연속 공백 정리 (단, 줄바꿈은 보존해야 보고서의 불릿(•) 구조가 유지된다)
+  result = result
+    .replace(/[ \t]{2,}/g, ' ')        // 연속된 공백/탭만 하나로 축소
+    .replace(/[ \t]*\n[ \t]*/g, '\n')  // 줄바꿈 주변의 공백 정리 (줄바꿈 자체는 유지)
+    .replace(/\n{3,}/g, '\n\n')        // 과도한 빈 줄만 최대 2줄로 축소
+    .trim();
 
   // 변경률 계산
   const finalLength = result.length;

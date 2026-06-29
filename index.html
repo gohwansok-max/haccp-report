@@ -9,7 +9,11 @@
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#1C2541">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="HACCP 컨설턴트">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./icon.png">
+  <link rel="icon" type="image/png" href="./icon.png">
   
   <!-- Tailwind CSS & FontAwesome Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -266,7 +270,30 @@
               <span>AI 분석</span>
             </button>
           </div>
-          
+
+          <!-- 🛡️ 안전장치: 원본 음성 파일 백업 토글 (기본 꺼짐 — 텍스트 변환이 최우선) -->
+          <div class="flex items-start justify-between bg-brand-dark/60 border border-brand-accent/30 rounded-xl px-3 py-2">
+            <div class="flex flex-col pr-2">
+              <span class="text-[11px] font-bold text-slate-200 flex items-center">
+                <i class="fa-solid fa-shield-halved text-emerald-400 mr-1.5"></i> 원본 음성도 파일로 백업
+              </span>
+              <span class="text-[10px] text-slate-500 leading-snug mt-0.5">
+                만일을 대비해 녹음 원본을 1개 파일로 저장합니다. 일부 스마트폰에서는 실시간 텍스트 변환을 방해할 수 있어 기본값은 꺼짐입니다.
+              </span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-0.5">
+              <input type="checkbox" id="audioBackupToggle" class="sr-only peer">
+              <div class="w-10 h-5 bg-slate-700 peer-checked:bg-emerald-500 rounded-full transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+            </label>
+          </div>
+
+          <!-- ⚠️ 음성 미인식 경고 (STT 헬스 감지) -->
+          <div id="sttHealthWarning" class="hidden bg-amber-950/40 border border-amber-600/50 rounded-xl px-3 py-2 text-[11px] text-amber-300 leading-snug">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+            <span id="sttHealthWarningText">음성이 인식되지 않고 있습니다. 마이크 권한과 인터넷 연결을 확인해 주세요. (안전을 위해 위의 '원본 음성 백업'을 켜는 것을 권장합니다)</span>
+          </div>
+
           <div class="flex items-center justify-between space-x-2">
             <button id="sendToPurposeBtn" class="flex-grow py-2.5 px-3 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-xs border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="컨설팅 목적으로 지정">
               <i class="fa-solid fa-bullseye text-brand-primary"></i>
@@ -345,8 +372,14 @@
           </div>
 
           <!-- 촬영된 사진 썸네일 보관함 (가로 스크롤) -->
-          <div class="h-24 flex-shrink-0">
-            <div id="photoThumbContainer" class="flex space-x-2 overflow-x-auto h-full pb-1 items-center">
+          <div class="h-24 flex-shrink-0 flex items-center space-x-3">
+            <!-- 파일에서 사진 가져오기 버튼 -->
+            <button id="photoUploadBtn" class="flex-shrink-0 w-24 h-20 rounded-xl bg-brand-dark/60 hover:bg-brand-dark border-2 border-dashed border-brand-accent/50 hover:border-brand-primary text-slate-400 hover:text-brand-primary flex flex-col items-center justify-center space-y-1.5 transition-all duration-200 cursor-pointer text-center relative group">
+              <i class="fa-solid fa-file-image text-lg"></i>
+              <span class="text-[10px] font-bold">사진 가져오기</span>
+              <input type="file" id="photoFileInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+            </button>
+            <div id="photoThumbContainer" class="flex-grow flex space-x-2 overflow-x-auto h-full pb-1 items-center">
               <p class="text-[11px] text-slate-500 italic text-center w-full">촬영된 현장 사진이 없습니다.</p>
             </div>
           </div>
@@ -657,6 +690,7 @@
       get cameraEmptyState() { return document.getElementById('cameraEmptyState'); },
       get cameraSourceSelect() { return document.getElementById('cameraSourceSelect'); },
       get photoThumbContainer() { return document.getElementById('photoThumbContainer'); },
+      get photoFileInput() { return document.getElementById('photoFileInput'); },
       get flashOverlay() { return document.getElementById('flashOverlay'); },
       get shutterAudio() { return document.getElementById('shutterAudio'); },
       
@@ -1681,6 +1715,90 @@
       downloadSinglePhoto(state.capturedPhotos.length - 1);
     });
 
+    // --- PHOTO FILE UPLOAD HANDLER ---
+    if (DOM.photoFileInput) {
+      DOM.photoFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+          showToast("이미지 파일만 업로드할 수 있습니다.", "error");
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            // Create 16:9 canvas crop from center of uploaded image
+            const targetAspect = 16 / 9;
+            const imgAspect = img.naturalWidth / img.naturalHeight;
+
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = img.naturalWidth;
+            let sourceHeight = img.naturalHeight;
+
+            if (imgAspect > targetAspect) {
+              sourceWidth = img.naturalHeight * targetAspect;
+              sourceX = (img.naturalWidth - sourceWidth) / 2;
+            } else {
+              sourceHeight = img.naturalWidth / targetAspect;
+              sourceY = (img.naturalHeight - sourceHeight) / 2;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 1280;
+            canvas.height = 720;
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+
+            // Draw location/date watermark on bottom right corner (audit proofing)
+            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+            ctx.fillRect(canvas.width - 450, canvas.height - 75, 430, 65);
+            
+            ctx.font = "bold 20px 'Malgun Gothic', '맑은 고딕', sans-serif";
+            ctx.fillStyle = "#00F0FF";
+            ctx.textAlign = "right";
+            const locStr = state.targetOrg || "HACCP 컨설팅 현장";
+            ctx.fillText(locStr, canvas.width - 30, canvas.height - 45);
+            
+            ctx.font = "16px sans-serif";
+            ctx.fillStyle = "#F1F5F9";
+            const now = new Date();
+            const timeStr = now.getFullYear() + "-" + 
+                            String(now.getMonth() + 1).padStart(2, '0') + "-" + 
+                            String(now.getDate()).padStart(2, '0') + " " + 
+                            String(now.getHours()).padStart(2, '0') + ":" + 
+                            String(now.getMinutes()).padStart(2, '0') + ":" + 
+                            String(now.getSeconds()).padStart(2, '0');
+            ctx.fillText(timeStr, canvas.width - 30, canvas.height - 20);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            state.capturedPhotos.push(dataUrl);
+
+            renderThumbnails();
+            showToast("선택한 사진이 16:9 비율 및 워터마크와 함께 등록되었습니다.", "success");
+
+            // Auto-save to phone gallery instantly on capture
+            downloadSinglePhoto(state.capturedPhotos.length - 1);
+            
+            // Clear file input value
+            DOM.photoFileInput.value = "";
+          };
+          img.onerror = () => {
+            showToast("이미지를 불러오는 데 실패했습니다.", "error");
+          };
+          img.src = event.target.result;
+        };
+        reader.onerror = () => {
+          showToast("파일을 읽는 데 실패했습니다.", "error");
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     function renderThumbnails() {
       DOM.photoThumbContainer.innerHTML = "";
       
@@ -1808,14 +1926,12 @@
     let audioChunkTimer = null;
     let isChunkingRestart = false;
 
-    async function startAudioRecording(isRestart = false) {
-      if (!isRestart) {
-        audioChunks = [];
-        isChunkingRestart = false;
-      }
-      
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.warn("navigator.mediaDevices is not available for raw audio recording.");
+    async function startAudioRecording() {
+      audioChunks = [];
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+        console.warn("오디오 백업: 이 환경은 getUserMedia/MediaRecorder를 지원하지 않습니다.");
+        showToast("이 브라우저는 원본 음성 백업을 지원하지 않습니다.", "info");
         return;
       }
 
@@ -1823,7 +1939,7 @@
         if (!audioStream) {
           audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         }
-        
+
         let options = { mimeType: 'audio/webm' };
         if (!MediaRecorder.isTypeSupported(options.mimeType)) {
           options = { mimeType: 'audio/ogg' };
@@ -1843,36 +1959,34 @@
         };
 
         mediaRecorder.onstop = () => {
-          if (audioChunks.length > 0) {
-            const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            
-            const orgName = state.targetOrg || "미지정";
-            const dateStr = state.consultingDate ? state.consultingDate.replace(/-/g, "") : new Date().toISOString().slice(0, 10).replace(/-/g, "");
-            const timeStr = new Date().toTimeString().slice(0, 5).replace(/:/g, "");
-            
-            let ext = 'webm';
-            if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('mp4')) ext = 'mp4';
-            else if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('ogg')) ext = 'ogg';
-            else if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('wav')) ext = 'wav';
-            
-            a.download = `HACCP_Audio_${orgName}_${dateStr}_${timeStr}.${ext}`;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            }, 100);
-            showToast("원본 오디오 파일 청크가 스마트폰에 다운로드되었습니다.", "success");
-          }
+          try {
+            if (audioChunks.length > 0) {
+              const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
 
-          if (isChunkingRestart) {
+              const orgName = state.targetOrg || "미지정";
+              const dateStr = state.consultingDate ? state.consultingDate.replace(/-/g, "") : new Date().toISOString().slice(0, 10).replace(/-/g, "");
+              const timeStr = new Date().toTimeString().slice(0, 5).replace(/:/g, "");
+
+              let ext = 'webm';
+              if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('mp4')) ext = 'mp4';
+              else if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('ogg')) ext = 'ogg';
+              else if (mediaRecorder.mimeType && mediaRecorder.mimeType.includes('wav')) ext = 'wav';
+
+              a.download = `HACCP_Audio_${orgName}_${dateStr}_${timeStr}.${ext}`;
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }, 100);
+              showToast("원본 음성 파일 1개가 저장되었습니다.", "success");
+            }
+          } finally {
+            // 녹음 종료 시 메모리/마이크 정리 (다중 파일 분할 없이 1개로만 저장)
             audioChunks = [];
-            isChunkingRestart = false;
-            startAudioRecording(true);
-          } else {
             if (audioStream) {
               audioStream.getTracks().forEach(track => track.stop());
               audioStream = null;
@@ -1880,24 +1994,18 @@
           }
         };
 
-        mediaRecorder.start();
-        console.log("MediaRecorder started recording audio.");
-
-        if (!isRestart) {
-          if (audioChunkTimer) clearInterval(audioChunkTimer);
-          audioChunkTimer = setInterval(() => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-              console.log("10 minutes reached, chunking audio file...");
-              isChunkingRestart = true;
-              mediaRecorder.stop();
-            }
-          }, 600000); // 10 minutes
-        }
+        // timeslice(15초)를 주어 데이터를 주기적으로 모아두면 장시간 녹음에서도 안정적이다.
+        // 파일은 [녹음 정지] 시 단 1개로 합쳐 저장한다(기존의 10분마다 분할 다운로드 방식 제거).
+        mediaRecorder.start(15000);
+        console.log("오디오 백업 녹음 시작 (정지 시 1개 파일로 저장).");
       } catch (err) {
-        console.warn("Failed to start MediaRecorder: ", err);
-        if (!isRestart) {
-          showToast("마이크 지원 오류로 원본 오디오 녹음은 저장되지 않습니다.", "info");
+        console.warn("오디오 백업 시작 실패: ", err);
+        showToast("마이크 접근 오류로 원본 음성 백업을 시작하지 못했습니다.", "info");
+        if (audioStream) {
+          try { audioStream.getTracks().forEach(track => track.stop()); } catch (_) {}
+          audioStream = null;
         }
+        mediaRecorder = null;
       }
     }
 
@@ -1917,6 +2025,48 @@
     let isRecording = false;
     let finalTranscript = "";
     let lastProcessedIndex = 0;
+
+    // STT 헬스 감지: 녹음 시작 후 일정 시간 안에 음성이 한 번도 인식되지 않으면 경고한다.
+    let sttHealthTimer = null;
+    let sttEverGotResult = false;
+    const STT_HEALTH_TIMEOUT_MS = 15000; // 15초
+
+    function isAudioBackupEnabled() {
+      const t = document.getElementById('audioBackupToggle');
+      return !!(t && t.checked);
+    }
+
+    function showSttHealthWarning() {
+      const w = document.getElementById('sttHealthWarning');
+      if (w) { w.classList.remove('hidden'); }
+    }
+
+    function hideSttHealthWarning() {
+      const w = document.getElementById('sttHealthWarning');
+      if (w) { w.classList.add('hidden'); }
+    }
+
+    function clearSttHealthTimer() {
+      if (sttHealthTimer) { clearTimeout(sttHealthTimer); sttHealthTimer = null; }
+    }
+
+    function armSttHealthTimer() {
+      // 아직 한 번도 음성을 인식하지 못한 경우에만 감시한다(인식이 한 번이라도 되면 이 기기는 정상).
+      clearSttHealthTimer();
+      if (sttEverGotResult) return;
+      sttHealthTimer = setTimeout(() => {
+        if (isRecording && !sttEverGotResult) {
+          showSttHealthWarning();
+          showToast("음성이 인식되지 않고 있습니다. 마이크/인터넷을 확인해 주세요.", "error");
+        }
+      }, STT_HEALTH_TIMEOUT_MS);
+    }
+
+    function markSttHealthy() {
+      sttEverGotResult = true;
+      clearSttHealthTimer();
+      hideSttHealthWarning();
+    }
 
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1942,9 +2092,11 @@
         DOM.sttRecordIcon.className = "fa-solid fa-microphone-lines text-brand-dark animate-bounce";
         DOM.sttStatusText.textContent = "실시간 기록 중";
         DOM.sttStatusText.className = "text-[10px] text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full border border-brand-primary/30 animate-pulse";
-        
-        // Start raw audio recording
-        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+
+        // 원본 음성 백업은 사용자가 토글을 켠 경우에만 실행한다.
+        // (기본은 꺼짐 — MediaRecorder가 마이크를 점유하면 일부 기기에서 STT 텍스트가
+        //  안 나올 수 있어, 실시간 텍스트 변환을 최우선으로 보장하기 위함이다.)
+        if (isAudioBackupEnabled() && (!mediaRecorder || mediaRecorder.state === 'inactive')) {
           startAudioRecording();
         }
 
@@ -1953,46 +2105,78 @@
 
       recognition.onerror = (event) => {
         console.error("STT Error: ", event.error);
-        if (event.error === 'not-allowed') {
-          showToast("마이크 권한이 거부되었습니다.", "error");
+        // 치명적 오류만 즉시 중단. 그 외(no-speech, aborted, network 등)는
+        // onend에서 자동 재시작하여 장시간 녹음에서도 끊기지 않도록 한다.
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          showToast("마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크를 허용해 주세요.", "error");
+          isRecording = false;
+          stopRecordingState();
+        } else if (event.error === 'audio-capture') {
+          showToast("마이크를 찾을 수 없습니다. 마이크 연결을 확인해 주세요.", "error");
+          isRecording = false;
+          stopRecordingState();
         } else {
-          showToast(`인식 오류: ${event.error}`, "error");
+          console.warn("일시적 STT 오류 → 자동 재시작 예정:", event.error);
         }
-        stopRecordingState();
       };
 
       recognition.onend = () => {
+        // 사용자가 녹음을 끄지 않았다면(continuous 모드가 모바일에서 자동 종료된 경우 포함)
+        // 세션을 즉시 재시작하여 1시간 이상도 끊김 없이 누적되게 한다.
         if (isRecording) {
-          finalTranscript = DOM.sttLogArea.value || "";
-          recognition.start();
+          // 새 세션은 results 배열이 0부터 다시 시작하므로 커서를 초기화한다.
+          lastProcessedIndex = 0;
+          try {
+            recognition.start();
+          } catch (e) {
+            // start()가 너무 빨리 호출되면 예외가 날 수 있어 잠시 후 재시도.
+            setTimeout(() => {
+              if (isRecording) {
+                try { recognition.start(); } catch (_) {}
+              }
+            }, 300);
+          }
         } else {
           stopRecordingState();
         }
       };
 
       recognition.onresult = (event) => {
+        // 결과가 한 번이라도 들어오면 이 기기는 STT 정상 → 미인식 경고/타이머 해제
+        if (!sttEverGotResult) markSttHealthy();
+
         let interimTranscript = "";
-        let hasNewFinal = false;
-        
+        let committedNew = false;
+
+        // 1) 새로 확정(final)된 결과만 커서(lastProcessedIndex) 이후로 한 번씩 누적한다.
+        //    같은 결과를 두 번 처리하지 않으므로 중복이 발생하지 않는다(멱등 처리).
         for (let i = lastProcessedIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
-            const chunk = event.results[i][0].transcript.trim();
+            const chunk = (event.results[i][0].transcript || "").trim();
             if (chunk) {
-              const cleanedChunk = deduplicateNewChunk(finalTranscript, chunk);
+              // 세션 재시작 시 직전 발화가 다시 들어오는 경우만 경계에서 중복 제거한다.
+              // 1시간 이상 누적되어도 비용이 일정하도록 비교 대상은 누적 텍스트의 꼬리(약 400자)만 넘긴다.
+              const cleanedChunk = finalTranscript.trim()
+                ? deduplicateNewChunk(finalTranscript.slice(-400), chunk)
+                : chunk;
               if (cleanedChunk) {
-                finalTranscript = finalTranscript.trim() + (finalTranscript.trim() ? " " : "") + cleanedChunk + " ";
-                finalTranscript = collapseAdjacentDuplicates(finalTranscript) + " ";
+                finalTranscript = (finalTranscript.trim() + " " + cleanedChunk).trim();
+                committedNew = true;
               }
             }
             lastProcessedIndex = i + 1;
-            hasNewFinal = true;
-          } else {
+          }
+        }
+
+        // 2) 아직 확정되지 않은 꼬리 부분만 임시(interim) 표시용으로 모은다(누적하지 않음).
+        for (let i = lastProcessedIndex; i < event.results.length; ++i) {
+          if (!event.results[i].isFinal) {
             interimTranscript += event.results[i][0].transcript;
           }
         }
 
-        if (hasNewFinal) {
-          DOM.sttLogArea.value = finalTranscript.trim();
+        if (committedNew) {
+          DOM.sttLogArea.value = finalTranscript;
           DOM.sttLogArea.scrollTop = DOM.sttLogArea.scrollHeight;
           autoSaveDraft();
         }
@@ -2009,14 +2193,16 @@
       DOM.sttStatusText.textContent = "일시정지됨";
       DOM.sttStatusText.className = "text-[10px] text-amber-400 bg-amber-950/20 px-2 py-0.5 rounded-full border border-amber-800/30";
       DOM.sttInterim.textContent = "";
-      
+
+      clearSttHealthTimer();
+      hideSttHealthWarning();
       stopAudioRecording();
       releaseWakeLock();
     }
 
     DOM.sttRecordBtn.addEventListener('click', () => {
       if (!recognition) return;
-      
+
       if (isRecording) {
         isRecording = false;
         recognition.stop();
@@ -2024,6 +2210,10 @@
         stopRecordingState();
       } else {
         finalTranscript = DOM.sttLogArea.value || "";
+        // 이번 녹음 세션의 음성 미인식 감시 시작 (재시작마다 리셋되지 않도록 여기서 한 번만 건다)
+        sttEverGotResult = false;
+        hideSttHealthWarning();
+        armSttHealthTimer();
         recognition.start();
       }
     });
@@ -2032,6 +2222,23 @@
     DOM.sttLogArea.addEventListener('input', (e) => {
       finalTranscript = e.target.value;
     });
+
+    // 원본 음성 백업 토글: 사용자의 선택을 기억한다.
+    (function initAudioBackupToggle() {
+      const toggle = document.getElementById('audioBackupToggle');
+      if (!toggle) return;
+      try {
+        toggle.checked = localStorage.getItem('HACCP_AUDIO_BACKUP') === '1';
+      } catch (_) {}
+      toggle.addEventListener('change', () => {
+        try { localStorage.setItem('HACCP_AUDIO_BACKUP', toggle.checked ? '1' : '0'); } catch (_) {}
+        if (toggle.checked) {
+          showToast("원본 음성 백업이 켜졌습니다. 혹시 실시간 텍스트가 안 나오면 이 기능을 다시 꺼주세요.", "info");
+        } else {
+          showToast("원본 음성 백업이 꺼졌습니다. (실시간 텍스트 변환 우선)", "info");
+        }
+      });
+    })();
 
     // --- Robust Copy & Download Functions ---
     function copySttToClipboard() {
@@ -2165,35 +2372,82 @@
       DOM.sendToTableBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i>분류 중...`;
       
       try {
-        const prompt = `당신은 20년 경력의 HACCP 컨설턴트 고환석입니다. 다음 현장 코칭 내용을 바탕으로, 점검 테이블 행에 들어갈 '진단 서류 및 영역(area)', '점검 내용(현황 및 문제점)(check)', '개선 지도 사항(action)'을 추출 및 완성도 높게 작성하세요.
-입력된 내용이 아주 짧거나(예: "ㅎㅎㅎㅎ", "위생") 모호할지라도, 해당 키워드나 정황을 바탕으로 가장 개연성 있는 HACCP 전문 내용(예: 개인위생 점검 누락, 개선 지도 등)으로 살을 붙이고 전문 서식용 문장으로 가공하여 빈칸 없이 작성해야 합니다. 절대 빈칸으로 남겨두지 마십시오.
+        const prompt = `당신은 20년 경력의 최고 전문가이자 HACCP 컨설턴트 고환석입니다.
+다음 현장 코칭 대화록(STT 로그)을 분석하여 점검 테이블 행에 들어갈 '진단 서류 및 영역(area)', '점검 내용(현황 및 문제점)(check)', '개선 지도 사항(action)'을 추출 및 완성도 높게 작성하세요.
+
+[지침]
+1. 입력된 텍스트가 실시간 단발성 발화가 아니라, 오디오 파일 전체를 받아적은 긴 스크립트(통합 대화록)일 수 있음을 인지하고 전체 맥락을 종합 분석하세요.
+2. 대화 속에 녹아있는 [컨설턴트의 지적/권고]와 [업체의 현황/답변]을 완벽하게 매칭하여 격조 높은 서식용 문어체 문장으로 다듬어 작성해 주세요.
+3. 대화록 안에 여러 개의 서로 다른 HACCP 영역(예: 폐수처리, 폐기물 관리, 클레임, 이물 제어, 화학물질 관리 등)이 복합적으로 포함되어 있다면, 이를 감지하여 'tableData' 배열 내에 각각 별도의 객체(Object)들로 누락 없이 쪼개서 전량 추출해 주세요.
+4. 텍스트가 길거나 반대로 너무 짧더라도, 개연성 있는 HACCP 전문 용어와 고환석 컨설턴트의 20년 경력 톤앤매너를 바탕으로 풍부하게 살을 붙여 절대 빈칸(Empty String)이나 null이 발생하지 않도록 하십시오.
+5. [요약 최소화] 대화에서 언급된 점검 항목·지적 사항·수치·사례는 하나도 빠뜨리지 말고 각각 별도의 행으로 추출하세요. 여러 항목을 한 행에 뭉뚱그리지 마세요.
+6. [상세 작성] check(점검 내용)와 action(개선 지도 사항)은 한 줄로 짧게 끝내지 말고, 현장에서 무엇이 어떻게 미흡했는지·왜 문제인지·어떻게 고쳐야 하는지가 분명히 드러나도록 구체적으로 풀어 작성하세요.
+7. [신입사원도 이해 가능하게] 전문 용어가 나오면 짧은 부연 설명을 덧붙여, 식품안전 업무를 처음 접하는 사람도 이해할 수 있도록 쉽게 풀어 쓰되 보고서의 전문적 톤은 유지하세요.
 
 [STT 내용] ${activeText}`;
+
         const schema = {
           type: "OBJECT",
           properties: {
-            area: { type: "STRING" },
-            check: { type: "STRING" },
-            action: { type: "STRING" }
+            tableData: {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  area: { type: "STRING" },
+                  check: { type: "STRING" },
+                  action: { type: "STRING" }
+                },
+                required: ["area", "check", "action"]
+              }
+            }
           },
-          required: ["area", "check", "action"]
+          required: ["tableData"]
         };
         
         const resObj = await generateContentWithGemini(prompt, schema, apiKey);
         
-        DOM.modalArea.value = resObj.area || "현장 위생 및 서류 점검";
-        DOM.modalCheck.value = resObj.check || activeText.trim();
-        DOM.modalAction.value = resObj.action || "해당 사항 보완 권고";
-        
-        DOM.sttInsertModal.classList.remove('hidden');
-        DOM.sttInsertModal.classList.add('flex');
-        showToast("AI가 내용을 자동으로 분류했습니다.", "success");
+        if (resObj && resObj.tableData && Array.isArray(resObj.tableData) && resObj.tableData.length > 0) {
+          if (resObj.tableData.length === 1) {
+            DOM.modalArea.value = resObj.tableData[0].area || "현장 위생 및 서류 점검";
+            DOM.modalCheck.value = resObj.tableData[0].check || activeText.trim();
+            DOM.modalAction.value = resObj.tableData[0].action || "해당 사항 보완 권고";
+            
+            DOM.sttInsertModal.classList.remove('hidden');
+            DOM.sttInsertModal.classList.add('flex');
+            showToast("AI가 내용을 자동으로 분류했습니다.", "success");
+          } else {
+            if (state.tableData.length === 1 && !state.tableData[0].area && !state.tableData[0].check) {
+              state.tableData = [];
+            }
+            resObj.tableData.forEach(row => {
+              state.tableData.push({
+                no: state.tableData.length + 1,
+                area: row.area || "기타 현장 코칭",
+                check: row.check || "",
+                action: row.action || "해당 사항 보완 조치 권고"
+              });
+            });
+            renderTables();
+            autoSaveDraft();
+            showToast(`AI가 대화록에서 총 ${resObj.tableData.length}건의 점검 사항을 추출하여 테이블에 직접 추가했습니다.`, "success");
+          }
+        } else {
+          throw new Error("Invalid response structure");
+        }
       } catch (err) {
         console.error(err);
-        showToast("AI 분류 실패. 수동으로 입력해주세요.", "error");
-        DOM.modalArea.value = "현장 위생 및 서류 점검";
-        DOM.modalCheck.value = activeText.trim();
-        DOM.modalAction.value = "해당 사항 보완 권고";
+        showToast("AI 분류 실패. 수동으로 입력하거나 로컬 추출기로 대체합니다.", "error");
+        const localResult = runFallbackParser(activeText);
+        if (localResult.tableData && localResult.tableData.length > 0) {
+          DOM.modalArea.value = localResult.tableData[0].area || "현장 위생 및 서류 점검";
+          DOM.modalCheck.value = localResult.tableData[0].check || activeText.trim();
+          DOM.modalAction.value = localResult.tableData[0].action || "해당 사항 보완 권고";
+        } else {
+          DOM.modalArea.value = "현장 위생 및 서류 점검";
+          DOM.modalCheck.value = activeText.trim();
+          DOM.modalAction.value = "해당 사항 보완 권고";
+        }
         DOM.sttInsertModal.classList.remove('hidden');
         DOM.sttInsertModal.classList.add('flex');
       } finally {
@@ -2289,7 +2543,9 @@
     });
 
     async function generateContentWithGemini(prompt, schema, apiKey) {
-      const models = ['gemini-3.5-flash', 'gemini-1.5-flash'];
+      // 사용자가 사용하는 gemini-3.5-flash를 우선 사용하고,
+      // 일시적 오류/지역 제한 등으로 실패할 경우에만 다른 모델로 순차 폴백한다.
+      const models = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
       let lastError = null;
 
       for (const model of models) {
@@ -2303,7 +2559,10 @@
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: {
                 responseMimeType: "application/json",
-                responseSchema: schema
+                responseSchema: schema,
+                // 1시간 이상의 긴 대화록도 풍부하게 작성하도록 출력 토큰 한도를 최대로 확보한다.
+                maxOutputTokens: 8192,
+                temperature: 0.4
               }
             })
           });
@@ -2348,11 +2607,18 @@ ${JSON.stringify(state.historyChecklist.map(item => ({ no: item.no, area: item.a
       const systemPrompt = `당신은 20년 경력의 최고 전문가이자 식품안전 및 품질관리(HACCP) 정기 컨설팅 보고서 작성기 AI입니다.
 현장 코칭 중 녹음되거나 입력된 한국어 텍스트(STT 로그)가 주어집니다. 이를 철저히 분석하여 컨설팅 목적(purpose), 주요 점검 사항 테이블 데이터(tableData - 여러 항목을 분석하여 배열 형태로 추출 가능), 총평(summary - 종합 의견), 차후 계획(nextPlan), 그리고 오늘의 대시보드 브리핑 요약(briefing)을 HACCP 컨설턴트 고환석의 매우 전문적이고 깊이 있는 톤앤매너로 구성하여 JSON 형식으로 응답해 주세요.
 
+[지침]
+1. 입력된 텍스트가 실시간 단발성 발화가 아니라, 오디오 파일 전체를 받아적은 긴 스크립트(통합 대화록)일 수 있음을 인지하고 전체 맥락을 종합 분석하세요.
+2. 대화 속에 녹아있는 [컨설턴트의 지적/권고]와 [업체의 현황/답변]을 완벽하게 매칭하여 격조 높은 서식용 문어체 문장으로 다듬어 작성해 주세요.
+3. 대화록 안에 여러 개의 서로 다른 HACCP 영역(예: 폐수처리, 폐기물 관리, 클레임, 이물 제어, 화학물질 관리 등)이 복합적으로 포함되어 있다면, 이를 감지하여 'tableData' 배열 내에 각각 별도의 객체(Object)들로 누락 없이 쪼개서 전량 추출해 주세요.
+4. 텍스트가 길거나 반대로 너무 짧더라도, 개연성 있는 HACCP 전문 용어와 고환석 컨설턴트의 20년 경력 톤앤매너를 바탕으로 풍부하게 살을 붙여 절대 빈칸(Empty String)이나 null이 발생하지 않도록 하십시오.
+5. [매우 중요 - 요약 최소화] 대화록에 등장한 점검 항목, 지적 사항, 수치, 사례, 현장 정황은 하나도 빠뜨리지 말고 모두 보고서에 반영하세요. 여러 항목을 한 문장으로 뭉뚱그려 요약하지 말고, 각각을 독립된 내용으로 충분히 풀어 작성합니다. 분량을 일부러 줄이지 마세요.
+6. [내용은 풍성하게, 문장은 깔끔하게] 원문에 담긴 맥락과 의미는 최대한 보존하되, 구어체의 군더더기(어, 음, 반복, 끊긴 말)는 정리하여 읽기 쉬운 완결된 문장으로 다듬으세요.
+7. [신입사원도 이해 가능하게] 전문 용어(예: CCP=중요관리점, 위해요소분석, 모니터링, 검증, 이물 제어 등)가 나오면 괄호나 짧은 부연으로 쉬운 풀이를 덧붙여, 식품안전 업무를 처음 접하는 신입사원도 그 의미와 중요성을 이해할 수 있도록 친절하게 설명하세요. 단, 보고서의 전문적인 톤은 유지합니다.
+
 ${historyPromptPart}
 
 만약 입력된 STT 텍스트에 화자 구분이 모호하더라도 대화 정황(문답 구조 등)을 파악하여 점검 내용(check)과 개선 지도 사항(action)에 '컨설턴트 의견:', '업체 답변:' 또는 화자별 상황이 자연스럽게 녹아들도록 문장 구조를 다듬어라.
-
-입력된 내용이 다소 불충분하거나 일상어, 줄임말, 또는 "ㅎㅎㅎㅎ" 같이 극히 짧은 텍스트일지라도, 식품위생 및 HACCP 핵심 관리 기준을 바탕으로 전문가적인 지식(예: 개인위생 관리 양식 보완, 교차오염 방지 대책, 모니터링 기록 관리 등)을 유추 및 보완하여 모든 항목을 빈칸 없이 완성도 높은 전문 문어체 서식용 문장으로 작성해 주세요. 절대 빈칸으로 남겨두지 마십시오.
 
 반드시 지정된 JSON 스키마 형식으로 응답해야 합니다.
 
@@ -2360,10 +2626,10 @@ ${historyPromptPart}
 1. purpose (컨설팅 목적): 현장 대화 내용에서 이번 컨설팅의 핵심 목적을 1줄(30자 내외)로 명확히 작성하세요. 명사형(예: ~ 점검 및 ~ 지도)으로 종결합니다.
 2. tableData (주요 서류 점검 및 지도 내용): 대화에서 파악된 모든 점검 항목과 지적 사항을 분석하여 배열 형태로 작성해 주세요. 대화 내용에 여러 주제가 섞여 있다면 각각 별도의 행(Object)으로 분리하여 추출해 주세요.
    - area (진단 서류 및 영역): 위해요소분석표, 개인위생 일지, 작업장 평면도 등 점검 대상 영역 (15자 내외)
-   - check (점검 내용): 현장에서 파악된 구체적인 문제점과 미흡 사항을 서식용 문어체(현황 및 문제점)로 작성하세요. (예: "~이 누락되어 추적성 관리가 미흡함")
-   - action (개선 지도 사항): 지적된 문제점을 완벽하게 시정할 수 있는 전문적인 개선 조치 권고 사항을 작성하세요. (예: "~ 작성 기준을 보완하도록 개정 지도함")
-3. summary (총평): 전체 내용을 아우르는 핵심 요약 총평입니다. 20년차 최고 전문가의 시각에서, 현장의 전반적인 수준과 핵심 문제점, 그리고 경영진이 알아야 할 핵심 인사이트를 포함하여 매우 상세하고 논리적으로 3~4개의 불릿 기호(•)와 줄바꿈(\\n)으로 나누어 깊이 있게 작성하세요.
-4. nextPlan (차후 계획): 금일 지적된 사항을 바탕으로 차기 방문 시 재점검할 내용과 향후 업체가 지속가능한 위생 관리를 위해 보완해야 할 방향을 상세하게 제시해 주세요. 3~4개의 불릿 기호(•)와 줄바꿈(\\n)으로 나누어 작성하세요.
+   - check (점검 내용): 현장에서 파악된 구체적인 문제점과 미흡 사항을 서식용 문어체(현황 및 문제점)로 작성하세요. 한 줄로 끝내지 말고, '무엇이 어떻게 미흡했는지'와 '그것이 왜 문제가 되는지(위생/안전상 위험)'까지 2~4문장으로 충분히 풀어 설명하세요. 신입사원도 이해할 수 있도록 전문 용어에는 짧은 풀이를 곁들입니다. (예: "~이 누락되어 추적성(원료가 어디서 와서 어디로 갔는지 추적하는 것) 관리가 미흡함. 이 경우 문제 발생 시 회수 범위 특정이 어려워짐.")
+   - action (개선 지도 사항): 지적된 문제점을 완벽하게 시정할 수 있는 전문적인 개선 조치 권고 사항을 작성하세요. 막연한 권고가 아니라, 무엇을·어떻게·언제까지 보완해야 하는지가 드러나도록 구체적이고 실행 가능하게 2~4문장으로 작성합니다. (예: "~ 작성 기준을 보완하도록 개정 지도함. 담당자를 지정해 매일 기록하고, 주 1회 책임자가 검토·서명하도록 운영 체계를 갖출 것을 권고함.")
+3. summary (총평): 전체 내용을 아우르는 종합 총평입니다. 20년차 최고 전문가의 시각에서, 현장의 전반적인 수준, 잘하고 있는 점, 핵심 문제점, 그리고 경영진이 반드시 알아야 할 인사이트를 포함하여 매우 상세하고 논리적으로 작성하세요. 4~6개의 불릿 기호(•)와 줄바꿈(\\n)으로 나누되, 각 불릿은 한 문장으로 끝내지 말고 배경과 의미까지 풍부하게 풀어 깊이 있게 작성합니다. 과도하게 압축·요약하지 마세요.
+4. nextPlan (차후 계획): 금일 지적된 사항을 바탕으로 차기 방문 시 재점검할 내용과 향후 업체가 지속가능한 위생 관리를 위해 보완해야 할 방향을 상세하게 제시해 주세요. 4~6개의 불릿 기호(•)와 줄바꿈(\\n)으로 나누어, 각 항목마다 '무엇을 왜 점검/보완해야 하는지'가 분명히 드러나도록 풍부하게 작성하세요.
 5. briefing (AI 핵심 브리핑 카드 데이터): 웹 대시보드 시각화용 요약입니다.
    - keywords: 오늘 컨설팅에서 도출된 핵심 키워드 3~4개 (예: ["위해요소", "기록부실", "인수인계"])
    - summaryLines: 컨설팅 총평 및 핵심 지적사항을 요약한 3줄 요약 문장 배열 (정확히 3개의 문자열을 가진 배열이어야 함)
@@ -2473,10 +2739,20 @@ ${rawText}`;
 
     function runFallbackParser(text) {
       const cleaned = text.trim();
-      const sentences = cleaned.split(/[.\n]/).map(s => s.trim()).filter(Boolean);
-      const purpose = sentences[0] ? sentences[0] + " 점검 및 지도" : "현장 위생 및 서류 상태 점검";
+      if (!cleaned) {
+        return {
+          purpose: "현장 위생 및 서류 상태 점검",
+          tableData: [],
+          summary: "• 기록된 대화가 없습니다.",
+          nextPlan: "• 대화록 작성을 진행해 주십시오.",
+          briefing: { keywords: ["현장위생"], summaryLines: ["대화록이 비어 있습니다.", "", ""] },
+          historyChecklist: []
+        };
+      }
+
+      const sentences = cleaned.split(/[.\n]/).map(s => s.trim()).filter(s => s.length > 5);
+      const purpose = sentences[0] ? sentences[0].substring(0, 30) + " 점검 및 지도" : "현장 위생 및 서류 상태 점검";
       
-      let area = "현장 위생 및 서류 점검";
       const keywords = [
         { key: "위해요소", val: "위해요소분석표" },
         { key: "기준서", val: "HACCP 관리 기준서" },
@@ -2485,40 +2761,75 @@ ${rawText}`;
         { key: "평면도", val: "작업장 평면도 (7.3)" },
         { key: "위생", val: "개인위생 일지 및 위생 시설" },
         { key: "화학", val: "화학적 위해요소 근거" },
-        { key: "생물", val: "생물학적 위해요소 근거" }
+        { key: "생물", val: "생물학적 위해요소 근거" },
+        { key: "폐수", val: "폐수 및 보일러 용수 관리" },
+        { key: "폐기물", val: "폐기물 용기 및 처리" },
+        { key: "클레임", val: "고객 클레임 분석 및 개선" },
+        { key: "이물", val: "이물 제어 및 방충방서" }
       ];
-      
-      for (const kw of keywords) {
-        if (cleaned.includes(kw.key)) {
-          area = kw.val;
-          break;
-        }
-      }
-      
-      const check = cleaned.length > 150 ? cleaned.substring(0, 150) + "..." : cleaned;
-      const action = "현장 지적 사항 이행 및 향후 관리에 대한 기준서 보완 조치 권고";
-      
-      const summary = `• [현황] 실시간 현장 코칭을 기록하고 서류를 진단함.
-• [미흡 사항] 세부 지적 사항은 테이블에 반영되었으며 보완 조치가 권고됨.
-• [지도 방안] 기록의 추적성을 높이고 현장에 맞는 실질적인 양식 개정을 권장함.`;
 
-      const nextPlan = `• 금일 지적된 위해요소분석표 및 관리기준서 미흡 사항의 시정 조치 현장 확인.
-• 신규 현장 요원 배치에 따른 현장 위생 수칙 교육 실태 재진단.
-• 화학 물질(소독제 등) 관리대장 정기 작성 상태 점검.`;
+      const tableData = [];
+      sentences.forEach((sentence) => {
+        let matchedArea = null;
+        for (const kw of keywords) {
+          if (sentence.includes(kw.key)) {
+            matchedArea = kw.val;
+            break;
+          }
+        }
+        
+        if (matchedArea) {
+          tableData.push({
+            area: matchedArea,
+            check: sentence,
+            action: `${matchedArea} 관련 미흡 사항 보완 및 정기 기록 관리 지도`
+          });
+        }
+      });
+
+      if (tableData.length === 0) {
+        tableData.push({
+          area: "현장 위생 및 서류 점검",
+          check: cleaned.substring(0, 150) + (cleaned.length > 150 ? "..." : ""),
+          action: "현장 지적 사항 이행 및 향후 관리에 대한 기준서 보완 조치 권고"
+        });
+      }
+
+      const summary = `• [현황] 실시간 현장 코칭 및 대용량 대화록 로컬 간이 분석 결과입니다.
+• [미흡 사항] 대화 맥락에서 감지된 주요 영역별 미흡 사항들이 테이블에 자동 추출되었습니다.
+• [지도 방안] 지적된 영역에 대한 지속적인 모니터링 기록 유지를 권고합니다.`;
+
+      const nextPlan = `• 추출된 ${tableData.length}건의 미흡 사항에 대한 조치 이행 여부 차기 재점검.
+• 작업장 위생 및 정기 서류 양식 작성 교육 상태 진단.`;
 
       const briefing = {
-        keywords: ["현장위생", "보고서생성", "간이분석"],
+        keywords: ["현장위생", "로컬분석", "자동추출"],
         summaryLines: [
-          "실시간 녹음 기록 및 대화 내용을 간이 분석하여 점검 테이블 행을 자동 생성했습니다.",
-          "API 키가 설정되지 않아 로컬 규칙 기반의 간이 분석이 적용되었습니다.",
-          "상단 API 설정 메뉴에서 키를 입력하시면 상세한 AI 요약 및 브리핑이 제공됩니다."
+          `로컬 추출기를 통해 총 ${tableData.length}건의 점검 행을 감지했습니다.`,
+          "API 키를 등록하시면 인공지능 기반 고도화 요약이 제공됩니다.",
+          ""
         ]
       };
 
-      return { purpose, tableData: [{ area, check, action }], summary, nextPlan, briefing, historyChecklist: [] };
+      return { purpose, tableData, summary, nextPlan, briefing, historyChecklist: [] };
     }
 
     function applyAnalysisResult(data) {
+      if (!data || typeof data !== 'object') {
+        showToast("AI 분석 데이터가 유효하지 않아 로컬 복구 분석을 실행합니다.", "warning");
+        data = runFallbackParser(DOM.sttLogArea.value);
+      }
+
+      // Ensure all fields exist defensively
+      data.purpose = data.purpose || "현장 위생 및 서류 상태 점검";
+      data.tableData = data.tableData || [];
+      data.summary = data.summary || "• [현황] 실시간 현장 코칭 및 대화 분석.\n• [미흡 사항] 지적 사항에 대해 보완 조치가 권고됨.";
+      data.nextPlan = data.nextPlan || "• 미흡 사항에 대한 시정 조치 현장 확인.";
+      data.briefing = data.briefing || {
+        keywords: ["현장위생", "보고서생성"],
+        summaryLines: ["대화 내용을 분석하여 데이터를 생성했습니다.", "", ""]
+      };
+
       // 🆕 quick-rules 윤문 적용
       const humanizedData = humanizeGeminoiResponse(data);
       
@@ -2528,7 +2839,6 @@ ${rawText}`;
       }
       
       if (humanizedData.tableData && Array.isArray(humanizedData.tableData)) {
-        // Clear empty placeholder rows if any before adding
         if (state.tableData.length === 1 && !state.tableData[0].area && !state.tableData[0].check) {
           state.tableData = [];
         }
@@ -2536,7 +2846,7 @@ ${rawText}`;
           state.tableData.push({
             no: state.tableData.length + 1,
             area: row.area || "기타 현장 코칭",
-            check: row.check || "",
+            check: row.check || "점검 내용 기록",
             action: row.action || "해당 사항 보완 조치 권고"
           });
         });
@@ -2544,7 +2854,7 @@ ${rawText}`;
         state.tableData.push({
           no: state.tableData.length + 1,
           area: humanizedData.area || "기타 현장 코칭",
-          check: humanizedData.check || "",
+          check: humanizedData.check || "점검 내용 기록",
           action: humanizedData.action || "해당 사항 보완 조치 권고"
         });
       }
