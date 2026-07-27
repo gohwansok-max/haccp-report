@@ -323,6 +323,10 @@
               <i class="fa-solid fa-file-arrow-down text-brand-secondary"></i>
               <span>다운로드</span>
             </button>
+            <button id="dedupeSttBtn" class="flex-grow py-2.5 px-2 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-[11px] border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="겹쳐 적힌 STT 문장 중복 정리">
+              <i class="fa-solid fa-broom text-amber-300"></i>
+              <span>중복정리</span>
+            </button>
             <button id="loadTxtBtn" class="flex-grow py-2.5 px-2 rounded-xl bg-brand-accent hover:bg-slate-600 text-white font-semibold text-[11px] border border-brand-accent/50 flex items-center justify-center space-x-1 transition-all duration-200" title="TXT 파일 불러오기">
               <i class="fa-solid fa-file-import text-emerald-400"></i>
               <span>불러오기</span>
@@ -678,6 +682,7 @@
       get clearSttBtn() { return document.getElementById('clearSttBtn'); },
       get copySttBtn() { return document.getElementById('copySttBtn'); },
       get downloadSttBtn() { return document.getElementById('downloadSttBtn'); },
+      get dedupeSttBtn() { return document.getElementById('dedupeSttBtn'); },
       get loadTxtBtn() { return document.getElementById('loadTxtBtn'); },
       get txtFileInput() { return document.getElementById('txtFileInput'); },
       get aiSettingsBtn() { return document.getElementById('aiSettingsBtn'); },
@@ -1856,7 +1861,15 @@
     // --- STT DEDUPLICATION ALGORITHMS ---
     function normalizeWord(word) {
       if (!word) return "";
-      return word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").trim().toLowerCase();
+      return word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?？！!…·"'“”‘’]/g, "").trim().toLowerCase();
+    }
+
+    function normalizeTranscript(text) {
+      return (text || "")
+        .replace(/\s+/g, " ")
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?？！!…·"'“”‘’]/g, "")
+        .trim()
+        .toLowerCase();
     }
 
     function deduplicateNewChunk(existingText, newChunk) {
@@ -1865,7 +1878,14 @@
       if (existingWords.length === 0) return newChunk;
       if (newWords.length === 0) return "";
 
-      const maxMatchLen = Math.min(existingWords.length, newWords.length, 30);
+      // 새 청크 전체가 이미 꼬리에 있으면(세션 재시작 재전송) 완전 스킵
+      const existingNorm = normalizeTranscript(existingText);
+      const newNorm = normalizeTranscript(newChunk);
+      if (newNorm && existingNorm && (existingNorm.endsWith(newNorm) || existingNorm.includes(newNorm))) {
+        return "";
+      }
+
+      const maxMatchLen = Math.min(existingWords.length, newWords.length, 40);
       let matchLen = 0;
 
       for (let len = maxMatchLen; len >= 1; len--) {
@@ -1893,11 +1913,13 @@
     function collapseAdjacentDuplicates(text) {
       const words = text.trim().split(/\s+/).filter(Boolean);
       let changed = true;
+      let guard = 0;
       
-      while (changed) {
+      while (changed && guard < 50) {
+        guard++;
         changed = false;
-        // Look for adjacent duplicates of size L (from 30 words down to 1 word)
-        for (let L = Math.min(30, Math.floor(words.length / 2)); L >= 1; L--) {
+        // Look for adjacent duplicates of size L (from 40 words down to 1 word)
+        for (let L = Math.min(40, Math.floor(words.length / 2)); L >= 1; L--) {
           let i = 0;
           while (i + 2 * L <= words.length) {
             let match = true;
@@ -1918,6 +1940,92 @@
         }
       }
       return words.join(" ");
+    }
+
+    // 세션 재시작 직후 같은 final이 다시 들어오는 경우를 막기 위한 최근 final 버퍼
+    const RECENT_FINAL_TTL_MS = 60000;
+    const RECENT_FINAL_MAX = 40;
+    let recentFinalChunks = [];
+
+    function rememberRecentFinal(chunk) {
+      const text = (chunk || "").trim();
+      if (!text) return;
+      const now = Date.now();
+      recentFinalChunks.push({ text, at: now });
+      recentFinalChunks = recentFinalChunks
+        .filter((item) => now - item.at <= RECENT_FINAL_TTL_MS)
+        .slice(-RECENT_FINAL_MAX);
+    }
+
+    function scrubAgainstRecentFinals(chunk) {
+      let cleaned = (chunk || "").trim();
+      if (!cleaned) return "";
+      const now = Date.now();
+      recentFinalChunks = recentFinalChunks.filter((item) => now - item.at <= RECENT_FINAL_TTL_MS);
+
+      for (let i = recentFinalChunks.length - 1; i >= 0; i--) {
+        const prev = recentFinalChunks[i].text;
+        const normNew = normalizeTranscript(cleaned);
+        const normPrev = normalizeTranscript(prev);
+        if (!normNew) return "";
+        if (normNew === normPrev) return "";
+        // 새 결과가 최근 결과의 일부(또는 거의 동일)면 스킵
+        if (normNew.length >= 8 && normPrev.includes(normNew)) return "";
+        // 최근 결과가 새 결과의 앞부분으로 재유입되면 접두 중복 제거
+        cleaned = deduplicateNewChunk(prev, cleaned);
+        if (!cleaned) return "";
+      }
+      return cleaned;
+    }
+
+    function polishTranscriptTail(fullText) {
+      const text = (fullText || "").trim();
+      if (!text) return "";
+      const keepHeadChars = Math.max(0, text.length - 3000);
+      const head = text.slice(0, keepHeadChars).trim();
+      const tail = text.slice(keepHeadChars).trim();
+      const polishedTail = collapseAdjacentDuplicates(tail);
+      return [head, polishedTail].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    }
+
+    function collapseDuplicatesFull(text) {
+      const raw = (text || "").replace(/\s+/g, " ").trim();
+      if (!raw) return "";
+      const windowSize = 2500;
+      const overlap = 500;
+      if (raw.length <= windowSize + 200) {
+        return collapseAdjacentDuplicates(raw);
+      }
+
+      let result = "";
+      let pos = 0;
+      while (pos < raw.length) {
+        const end = Math.min(raw.length, pos + windowSize);
+        const slice = raw.slice(pos, end).trim();
+        let polished = collapseAdjacentDuplicates(slice);
+        if (!result) {
+          result = polished;
+        } else {
+          polished = deduplicateNewChunk(result.slice(-900), polished);
+          if (polished) {
+            result = (result + " " + polished).trim();
+            result = polishTranscriptTail(result);
+          }
+        }
+        if (end >= raw.length) break;
+        pos = Math.max(pos + 1, end - overlap);
+      }
+      return result.replace(/\s+/g, " ").trim();
+    }
+
+    let sttSaveTimer = null;
+    function scheduleSttAutoSave() {
+      // 2시간 장시간 녹음에서 final마다 IndexedDB 저장하면 버벅일 수 있어 디바운스
+      if (sttSaveTimer) return;
+      sttSaveTimer = setTimeout(() => {
+        sttSaveTimer = null;
+        autoSaveDraft();
+      }, 2500);
     }
 
     // --- MediaRecorder Audio Backup Variables ---
@@ -2033,15 +2141,44 @@
     let sttRestartTimer = null;
     let sttRestartAttempts = 0;
     let sttGotResultThisSession = false;
+    let sttSessionStartedAt = null;
+    let sttDurationTimer = null;
+    let sttCommitCount = 0;
 
     // 안드로이드는 무음이 이어지면 세션을 스스로 끊는다. 이때 곧바로 재시작하면
     // 시작/종료 알림음(띠리링)이 몇 초마다 반복된다. 그래서 "이번 세션에서 말이 인식됐는지"에 따라
     // 재시작 간격을 다르게 준다. 말이 인식된 세션이면 즉시(=말이 끊기지 않게), 무음만 이어지면 점점 늦게.
-    const STT_RESTART_BASE_MS = 400;
-    const STT_RESTART_MAX_MS = 1500;
+    const STT_RESTART_BASE_MS = 450;
+    const STT_RESTART_MAX_MS = 2500;
 
     function clearSttRestartTimer() {
       if (sttRestartTimer) { clearTimeout(sttRestartTimer); sttRestartTimer = null; }
+    }
+
+    function clearSttDurationTimer() {
+      if (sttDurationTimer) { clearInterval(sttDurationTimer); sttDurationTimer = null; }
+    }
+
+    function formatSttDuration(ms) {
+      const totalSec = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateSttDurationStatus() {
+      if (!sttUserIntent || !sttSessionStartedAt) return;
+      const elapsed = formatSttDuration(Date.now() - sttSessionStartedAt);
+      DOM.sttStatusText.textContent = `실시간 기록 중 · ${elapsed}`;
+    }
+
+    function startSttDurationClock() {
+      clearSttDurationTimer();
+      sttSessionStartedAt = Date.now();
+      updateSttDurationStatus();
+      sttDurationTimer = setInterval(updateSttDurationStatus, 1000);
     }
 
     // 세션이 끊겼을 때 재시작을 "예약"한다. 곧바로 start()를 부르지 않는 이유는
@@ -2136,6 +2273,7 @@
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'ko-KR';
+      try { recognition.maxAlternatives = 1; } catch (_) {}
 
       recognition.onstart = () => {
         // 사용자가 이미 정지를 눌렀는데 뒤늦게 start()가 성공한 경우.
@@ -2149,11 +2287,13 @@
         isRecording = true;
         sttGotResultThisSession = false;
         lastProcessedIndex = 0;
+        // textarea와 수동 편집본을 항상 기준으로 맞춤 (세션 재시작 중복 방지)
+        finalTranscript = DOM.sttLogArea.value || finalTranscript || "";
         DOM.sttRecordText.textContent = "녹음 중 (터치 시 정지)";
         DOM.sttRecordBtn.classList.remove('from-red-600', 'to-rose-500');
         DOM.sttRecordBtn.classList.add('from-cyan-500', 'to-brand-primary', 'animate-pulse-cyan');
         DOM.sttRecordIcon.className = "fa-solid fa-microphone-lines text-brand-dark animate-bounce";
-        DOM.sttStatusText.textContent = "실시간 기록 중";
+        updateSttDurationStatus();
         DOM.sttStatusText.className = "text-[10px] text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full border border-brand-primary/30 animate-pulse";
 
         // 원본 음성 백업은 사용자가 토글을 켠 경우에만 실행한다.
@@ -2215,13 +2355,20 @@
           if (event.results[i].isFinal) {
             const chunk = (event.results[i][0].transcript || "").trim();
             if (chunk) {
-              // 세션 재시작 시 직전 발화가 다시 들어오는 경우만 경계에서 중복 제거한다.
-              // 1시간 이상 누적되어도 비용이 일정하도록 비교 대상은 누적 텍스트의 꼬리(약 400자)만 넘긴다.
-              const cleanedChunk = finalTranscript.trim()
-                ? deduplicateNewChunk(finalTranscript.slice(-400), chunk)
-                : chunk;
+              // 세션 재시작 시 직전 발화가 다시 들어오는 경우:
+              // (a) 최근 final 버퍼 대조 → (b) 누적 텍스트 꼬리 접두 중복 제거
+              let cleanedChunk = scrubAgainstRecentFinals(chunk);
+              if (cleanedChunk && finalTranscript.trim()) {
+                cleanedChunk = deduplicateNewChunk(finalTranscript.slice(-800), cleanedChunk);
+              }
               if (cleanedChunk) {
                 finalTranscript = (finalTranscript.trim() + " " + cleanedChunk).trim();
+                rememberRecentFinal(cleanedChunk);
+                sttCommitCount++;
+                // 인접 반복 문장 붕괴는 비용이 있어 주기적으로 꼬리만 정리
+                if (sttCommitCount % 3 === 0) {
+                  finalTranscript = polishTranscriptTail(finalTranscript);
+                }
                 committedNew = true;
               }
             }
@@ -2239,7 +2386,7 @@
         if (committedNew) {
           DOM.sttLogArea.value = finalTranscript;
           DOM.sttLogArea.scrollTop = DOM.sttLogArea.scrollHeight;
-          autoSaveDraft();
+          scheduleSttAutoSave();
         }
         DOM.sttInterim.textContent = interimTranscript;
       };
@@ -2250,8 +2397,15 @@
       // 세션이 되살아나 알림음이 계속 난다.
       sttUserIntent = false;
       clearSttRestartTimer();
+      clearSttDurationTimer();
       sttRestartAttempts = 0;
       isRecording = false;
+      // 정지 시 한 번 더 꼬리 중복을 정리해 확정본을 남긴다.
+      if (finalTranscript) {
+        finalTranscript = polishTranscriptTail(finalTranscript);
+        if (DOM.sttLogArea) DOM.sttLogArea.value = finalTranscript;
+        scheduleSttAutoSave();
+      }
       DOM.sttRecordText.textContent = "녹음 시작";
       DOM.sttRecordBtn.classList.remove('from-cyan-500', 'to-brand-primary', 'animate-pulse-cyan');
       DOM.sttRecordBtn.classList.add('from-red-600', 'to-rose-500');
@@ -2284,9 +2438,12 @@
         // 이번 녹음 세션의 음성 미인식 감시 시작 (재시작마다 리셋되지 않도록 여기서 한 번만 건다)
         sttEverGotResult = false;
         sttRestartAttempts = 0;
+        sttCommitCount = 0;
+        recentFinalChunks = [];
         sttUserIntent = true;
         hideSttHealthWarning();
         armSttHealthTimer();
+        startSttDurationClock();
         try {
           recognition.start();
         } catch (_) {
@@ -2403,9 +2560,26 @@
 
     DOM.clearSttBtn.addEventListener('click', () => {
       finalTranscript = "";
+      recentFinalChunks = [];
+      sttCommitCount = 0;
       DOM.sttLogArea.value = "";
       DOM.sttInterim.textContent = "";
       showToast("기록이 초기화되었습니다.", "info");
+    });
+
+    DOM.dedupeSttBtn.addEventListener('click', () => {
+      const before = DOM.sttLogArea.value || "";
+      if (!before.trim()) {
+        showToast("정리할 STT 텍스트가 없습니다.", "info");
+        return;
+      }
+      const after = collapseDuplicatesFull(before);
+      finalTranscript = after;
+      DOM.sttLogArea.value = after;
+      recentFinalChunks = [];
+      scheduleSttAutoSave();
+      const reduced = Math.max(0, before.length - after.length);
+      showToast(reduced > 0 ? `중복 문장 정리 완료 (−${reduced}자)` : "추가로 지울 중복이 거의 없습니다.", reduced > 0 ? "success" : "info");
     });
 
     // Send to Purpose flow

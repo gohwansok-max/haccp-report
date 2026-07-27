@@ -1,4 +1,4 @@
-const CACHE_NAME = 'haccp-consultant-v5';
+const CACHE_NAME = 'haccp-consultant-v6';
 const ASSETS = [
   './index.html',
   './manifest.json',
