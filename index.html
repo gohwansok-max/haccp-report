@@ -265,7 +265,7 @@
               <i id="sttRecordIcon" class="fa-solid fa-microphone"></i>
               <span id="sttRecordText">녹음 시작</span>
             </button>
-            <button id="aiAnalyzeBtn" class="py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-900/30 flex items-center justify-center space-x-2 transition-all duration-200" title="Gemini AI 자동 분석 및 작성">
+            <button id="aiAnalyzeBtn" class="py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-900/30 flex items-center justify-center space-x-2 transition-all duration-200" title="Claude Sonnet-5 (칩섭) AI 자동 분석 및 작성">
               <i class="fa-solid fa-wand-magic-sparkles text-brand-primary"></i>
               <span>AI 분석</span>
             </button>
@@ -334,7 +334,7 @@
           <!-- API Key 등록 단독 대형 버튼 -->
           <button id="aiSettingsManualBtn" class="w-full py-2.5 px-3 rounded-xl bg-brand-dark hover:bg-slate-800 text-slate-300 font-semibold text-xs border border-brand-accent/30 flex items-center justify-center space-x-2 transition-all duration-200">
             <i class="fa-solid fa-key text-brand-primary animate-pulse"></i>
-            <span>🔑 여기를 눌러 AI (Gemini) API Key 등록</span>
+            <span>🔑 여기를 눌러 AI (Claude/칩섭) API Key 등록</span>
           </button>
         </div>
       </section>
@@ -396,7 +396,7 @@
           </div>
           <div>
             <h2 class="text-sm font-black text-white tracking-wide">AI 현장 진단 브리핑</h2>
-            <p class="text-[10px] text-slate-400">Gemini AI가 실시간 음성 분석 결과를 바탕으로 도출한 핵심 요약</p>
+            <p class="text-[10px] text-slate-400">Claude Sonnet-5(칩섭)가 실시간 음성 분석 결과를 바탕으로 도출한 핵심 요약</p>
           </div>
         </div>
         <button onclick="document.getElementById('aiBriefingSection').classList.add('hidden')" class="text-slate-500 hover:text-white transition-colors" title="닫기">
@@ -541,22 +541,23 @@
       <div class="flex items-center justify-between border-b border-brand-accent/20 pb-2">
         <h3 class="text-sm font-bold text-white flex items-center space-x-2">
           <i class="fa-solid fa-key text-brand-primary"></i>
-          <span>Gemini AI API 설정</span>
+          <span>Claude AI API 설정 (칩섭)</span>
         </h3>
         <button onclick="closeAiSettingsModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
       </div>
       
       <div class="space-y-3 text-xs">
         <p class="text-slate-400 leading-relaxed">
-          녹음 내용을 고환석 컨설턴트 톤으로 자동 분석하기 위해 Google Gemini API Key가 필요합니다. 
-          키는 브라우저 내부 로컬 저장소(localStorage)에 안전하게 저장됩니다.
+          녹음 내용을 고환석 컨설턴트 톤으로 자동 분석하기 위해 칩섭(CheapSub) Claude API Key가 필요합니다.
+          모델은 <strong class="text-slate-300">claude-sonnet-5</strong>, 엔드포인트는 <strong class="text-slate-300">https://api.cheapsub.im</strong> 입니다.
+          키는 브라우저 내부 로컬 저장소(localStorage)에만 저장됩니다.
         </p>
         <div>
-          <label class="block text-slate-400 font-semibold mb-1">Gemini API Key</label>
-          <input id="aiApiKeyInput" type="password" class="bg-brand-dark border border-brand-accent text-brand-text rounded-lg p-2.5 w-full outline-none focus:border-brand-primary" placeholder="AIZAaSy...">
+          <label class="block text-slate-400 font-semibold mb-1">Claude API Key (칩섭 csk_…)</label>
+          <input id="aiApiKeyInput" type="password" class="bg-brand-dark border border-brand-accent text-brand-text rounded-lg p-2.5 w-full outline-none focus:border-brand-primary" placeholder="csk_...">
         </div>
         <div class="text-[10px] text-slate-500">
-          * 구글 AI 스튜디오에서 무료 API 키를 발급받으실 수 있습니다.
+          * 키 발급: <a href="https://cheapsub.im/api" target="_blank" rel="noopener" class="text-brand-primary underline">cheapsub.im/api</a> 대시보드
         </div>
       </div>
       
@@ -2433,7 +2434,7 @@
         return;
       }
       
-      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      const apiKey = getClaudeApiKey();
       if (!apiKey) {
         // Fallback
         DOM.modalArea.value = "현장 위생 및 서류 점검";
@@ -2482,7 +2483,7 @@
           required: ["tableData"]
         };
         
-        const resObj = await generateContentWithGemini(prompt, schema, apiKey);
+        const resObj = await generateContentWithClaude(prompt, schema, apiKey);
         
         if (resObj && resObj.tableData && Array.isArray(resObj.tableData) && resObj.tableData.length > 0) {
           if (resObj.tableData.length === 1) {
@@ -2539,7 +2540,7 @@
     };
 
     window.openAiSettingsModal = function() {
-      const savedKey = localStorage.getItem('GEMINI_API_KEY') || "";
+      const savedKey = getClaudeApiKey() || "";
       DOM.aiApiKeyInput.value = savedKey;
       DOM.aiSettingsModal.classList.remove('hidden');
       DOM.aiSettingsModal.classList.add('flex');
@@ -2553,11 +2554,13 @@
     window.saveAiSettings = function() {
       const keyVal = DOM.aiApiKeyInput.value.trim();
       if (keyVal) {
-        localStorage.setItem('GEMINI_API_KEY', keyVal);
-        showToast("Gemini API Key가 성공적으로 저장되었습니다.", "success");
-      } else {
+        localStorage.setItem('CLAUDE_API_KEY', keyVal);
         localStorage.removeItem('GEMINI_API_KEY');
-        showToast("Gemini API Key가 삭제되었습니다. 이제 간이 분석(로컬 엔진)만 가능합니다.", "info");
+        showToast("Claude API Key(칩섭)가 성공적으로 저장되었습니다.", "success");
+      } else {
+        localStorage.removeItem('CLAUDE_API_KEY');
+        localStorage.removeItem('GEMINI_API_KEY');
+        showToast("API Key가 삭제되었습니다. 이제 간이 분석(로컬 엔진)만 가능합니다.", "info");
       }
       window.closeAiSettingsModal();
     };
@@ -2590,7 +2593,7 @@
         return;
       }
       
-      const apiKey = localStorage.getItem('GEMINI_API_KEY');
+      const apiKey = getClaudeApiKey();
       
       DOM.aiAnalyzeBtn.disabled = true;
       const originalBtnHtml = DOM.aiAnalyzeBtn.innerHTML;
@@ -2599,7 +2602,7 @@
       try {
         let result;
         if (apiKey) {
-          result = await analyzeTextWithGemini(rawText, apiKey);
+          result = await analyzeTextWithClaude(rawText, apiKey);
         } else {
           showToast("API 키가 없어 간이 분석(로컬 엔진)을 수행합니다.", "info");
           result = runFallbackParser(rawText);
@@ -2619,54 +2622,115 @@
       }
     });
 
-    async function generateContentWithGemini(prompt, schema, apiKey) {
-      // 사용자가 사용하는 gemini-3.5-flash를 우선 사용하고,
-      // 일시적 오류/지역 제한 등으로 실패할 경우에만 다른 모델로 순차 폴백한다.
-      const models = ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
-      let lastError = null;
-
-      for (const model of models) {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        try {
-          console.log(`Attempting content generation using model: ${model}`);
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                responseMimeType: "application/json",
-                responseSchema: schema,
-                // 1시간 이상의 긴 대화록도 풍부하게 작성하도록 출력 토큰 한도를 최대로 확보한다.
-                maxOutputTokens: 8192,
-                temperature: 0.4
-              }
-            })
-          });
-
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(`HTTP error ${response.status}: ${errData.error?.message || response.statusText}`);
-          }
-
-          const data = await response.json();
-          if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content || !data.candidates[0].content.parts || data.candidates[0].content.parts.length === 0) {
-            throw new Error("Invalid response structure from Gemini API");
-          }
-
-          const textResponse = data.candidates[0].content.parts[0].text;
-          return JSON.parse(textResponse);
-        } catch (err) {
-          console.warn(`Model ${model} failed:`, err.message);
-          lastError = err;
-          // Continue to next model
-        }
-      }
-
-      throw lastError || new Error("All Gemini models failed to respond");
+    function getClaudeApiKey() {
+      return localStorage.getItem('CLAUDE_API_KEY') || localStorage.getItem('GEMINI_API_KEY') || "";
     }
 
-    async function analyzeTextWithGemini(rawText, apiKey) {
+    function toAnthropicJsonSchema(schema) {
+      if (!schema || typeof schema !== 'object') return schema;
+      const typeMap = {
+        OBJECT: 'object',
+        ARRAY: 'array',
+        STRING: 'string',
+        INTEGER: 'integer',
+        NUMBER: 'number',
+        BOOLEAN: 'boolean'
+      };
+      const out = { ...schema };
+      if (typeof out.type === 'string' && typeMap[out.type]) {
+        out.type = typeMap[out.type];
+      }
+      if (out.properties && typeof out.properties === 'object') {
+        out.properties = Object.fromEntries(
+          Object.entries(out.properties).map(([key, value]) => [key, toAnthropicJsonSchema(value)])
+        );
+      }
+      if (out.items) {
+        out.items = toAnthropicJsonSchema(out.items);
+      }
+      return out;
+    }
+
+    function extractJsonFromText(text) {
+      if (!text || typeof text !== 'string') {
+        throw new Error('Empty Claude text response');
+      }
+      const trimmed = text.trim();
+      try {
+        return JSON.parse(trimmed);
+      } catch (_) {
+        const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        if (fenced && fenced[1]) {
+          return JSON.parse(fenced[1].trim());
+        }
+        const start = trimmed.indexOf('{');
+        const end = trimmed.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+          return JSON.parse(trimmed.slice(start, end + 1));
+        }
+        throw new Error('Failed to parse Claude JSON response');
+      }
+    }
+
+    async function generateContentWithClaude(prompt, schema, apiKey) {
+      const endpoint = 'https://api.cheapsub.im/v1/messages';
+      const model = 'claude-sonnet-5';
+      const inputSchema = toAnthropicJsonSchema(schema);
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 8192,
+          temperature: 0.4,
+          tools: [
+            {
+              name: 'submit_analysis',
+              description: 'HACCP 컨설팅 분석 결과를 지정된 JSON 스키마로 제출합니다.',
+              input_schema: inputSchema
+            }
+          ],
+          tool_choice: { type: 'tool', name: 'submit_analysis' },
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const msg = errData.error?.message || errData.message || response.statusText;
+        throw new Error(`Claude API HTTP ${response.status}: ${msg}`);
+      }
+
+      const data = await response.json();
+      const toolUse = Array.isArray(data.content)
+        ? data.content.find((block) => block.type === 'tool_use' && block.name === 'submit_analysis')
+        : null;
+
+      if (toolUse && toolUse.input && typeof toolUse.input === 'object') {
+        return toolUse.input;
+      }
+
+      const textBlock = Array.isArray(data.content)
+        ? data.content.find((block) => block.type === 'text' && block.text)
+        : null;
+      if (textBlock) {
+        return extractJsonFromText(textBlock.text);
+      }
+
+      throw new Error('Invalid response structure from Claude API (칩섭)');
+    }
+
+    async function analyzeTextWithClaude(rawText, apiKey) {
       let historyPromptPart = "";
       if (state.historyChecklist && state.historyChecklist.length > 0) {
         historyPromptPart = `
@@ -2760,7 +2824,7 @@ ${rawText}`;
         required: ["purpose", "tableData", "summary", "nextPlan", "briefing", "historyChecklist"]
       };
 
-      return await generateContentWithGemini(systemPrompt, schema, apiKey);
+      return await generateContentWithClaude(systemPrompt, schema, apiKey);
     }
 
     // ===== QUICK-RULES HUMANIZATION =====

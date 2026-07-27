@@ -1,6 +1,6 @@
 # HACCP 컨설턴트 보고서 작성기 (PWA)
 
-식품안전·품질관리(HACCP) 정기 컨설팅 현장에서 **실시간 음성 → 텍스트(STT)** 로 코칭 내용을 받아적고, **AI(Gemini)** 가 이를 분석해 컨설팅 결과 보고서(Word)로 만들어 주는 모바일 웹앱입니다.
+식품안전·품질관리(HACCP) 정기 컨설팅 현장에서 **실시간 음성 → 텍스트(STT)** 로 코칭 내용을 받아적고, **AI(Claude Sonnet-5 / 칩섭)** 가 이를 분석해 컨설팅 결과 보고서(Word)로 만들어 주는 모바일 웹앱입니다.
 
 ## 주요 기능
 - 🎙️ **실시간 음성 인식(STT)**: 말하는 즉시 텍스트로 누적 (중복 제거, 장시간 녹음 안정화)
@@ -19,9 +19,11 @@
 > 실시간 음성 인식(STT)은 **Android Chrome**에서 가장 안정적으로 동작합니다. iOS Safari는 음성 인식 지원이 제한적입니다.
 
 ## AI 분석 사용법
-앱 안의 설정에서 **Gemini API 키**를 입력하면 AI 자동 분석/보고서 작성이 활성화됩니다.
+앱 안의 설정에서 **Claude API 키(칩섭 `csk_…`)** 를 입력하면 AI 자동 분석/보고서 작성이 활성화됩니다.
+- 모델: `claude-sonnet-5`
+- 엔드포인트: `https://api.cheapsub.im` (Anthropic Messages 호환)
 - API 키는 **사용자 기기의 브라우저(localStorage)** 에만 저장되며, 이 저장소(코드)에는 포함되지 않습니다.
-- 키 발급: Google AI Studio.
+- 키 발급: [cheapsub.im/api](https://cheapsub.im/api) 대시보드.
 
 ## 기술 메모
 - 단일 페이지 정적 웹앱(`index.html`) + 서비스워커(`sw.js`) + 매니페스트(`manifest.json`)
