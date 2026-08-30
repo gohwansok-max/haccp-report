@@ -121,7 +121,7 @@
         <i class="fa-solid fa-rotate-left mr-1.5"></i> 전체 초기화
       </button>
       <!-- AI Settings Gear -->
-      <button id="aiSettingsBtn" class="p-2 rounded-xl bg-brand-dark border border-brand-accent/50 text-slate-400 hover:text-brand-primary transition-all" title="AI API 설정">
+      <button id="aiSettingsBtn" class="p-2 rounded-xl bg-brand-dark border border-brand-accent/50 text-slate-400 hover:text-brand-primary transition-all" title="AI 분석 / 정밀 전사 설정">
         <i class="fa-solid fa-key"></i>
       </button>
     </div>
@@ -252,14 +252,35 @@
         </div>
 
         <!-- 화자 분리 숏컷 태그 버튼 -->
-        <div class="flex items-center space-x-2 mb-3">
-          <span class="text-[10px] text-slate-500 font-bold uppercase">화자 숏컷:</span>
+        <div class="flex flex-wrap items-center gap-1.5 mb-2">
+          <span class="text-[10px] text-slate-500 font-bold uppercase w-full">화자 숏컷:</span>
           <button onclick="insertSpeakerTag('[컨설턴트:] ')" class="px-2 py-1 rounded bg-brand-accent/50 hover:bg-brand-primary/20 hover:text-brand-primary text-slate-300 text-[11px] font-bold transition-all border border-brand-accent/30 flex items-center">
             <i class="fa-solid fa-user-tie text-[9px] mr-1 text-brand-primary"></i> 컨설턴트
           </button>
           <button onclick="insertSpeakerTag('[업체 담당자:] ')" class="px-2 py-1 rounded bg-brand-accent/50 hover:bg-brand-primary/20 hover:text-brand-primary text-slate-300 text-[11px] font-bold transition-all border border-brand-accent/30 flex items-center">
             <i class="fa-solid fa-user-gear text-[9px] mr-1 text-brand-secondary"></i> 업체 담당자
           </button>
+          <button onclick="insertSpeakerTag('[품질담당:] ')" class="px-2 py-1 rounded bg-brand-accent/50 hover:bg-brand-primary/20 hover:text-brand-primary text-slate-300 text-[11px] font-bold transition-all border border-brand-accent/30 flex items-center">
+            <i class="fa-solid fa-clipboard-check text-[9px] mr-1 text-brand-secondary"></i> 품질담당
+          </button>
+          <button onclick="insertSpeakerTag('[생산담당:] ')" class="px-2 py-1 rounded bg-brand-accent/50 hover:bg-brand-primary/20 hover:text-brand-primary text-slate-300 text-[11px] font-bold transition-all border border-brand-accent/30 flex items-center">
+            <i class="fa-solid fa-industry text-[9px] mr-1 text-brand-secondary"></i> 생산담당
+          </button>
+          <button onclick="insertSpeakerTag('[대표:] ')" class="px-2 py-1 rounded bg-brand-accent/50 hover:bg-brand-primary/20 hover:text-brand-primary text-slate-300 text-[11px] font-bold transition-all border border-brand-accent/30 flex items-center">
+            <i class="fa-solid fa-user-shield text-[9px] mr-1 text-brand-secondary"></i> 대표
+          </button>
+        </div>
+
+        <!-- 중요/지적사항 북마크 (타임스탬프 기록) -->
+        <div class="flex flex-wrap items-center gap-1.5 mb-3">
+          <span class="text-[10px] text-slate-500 font-bold uppercase w-full">북마크:</span>
+          <button onclick="addBookmark('important')" class="px-2.5 py-1.5 rounded bg-amber-500/10 hover:bg-amber-500/25 text-amber-300 text-[11px] font-bold transition-all border border-amber-500/30 flex items-center">
+            <i class="fa-solid fa-star text-[9px] mr-1"></i> 중요
+          </button>
+          <button onclick="addBookmark('finding')" class="px-2.5 py-1.5 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 text-[11px] font-bold transition-all border border-rose-500/30 flex items-center">
+            <i class="fa-solid fa-triangle-exclamation text-[9px] mr-1"></i> 지적사항
+          </button>
+          <span id="bookmarkCountBadge" class="hidden text-[10px] text-slate-400 bg-brand-dark px-2 py-0.5 rounded-full border border-brand-accent/30"></span>
         </div>
 
         <!-- 녹음 및 텍스트 적용 컨트롤러 -->
@@ -296,6 +317,19 @@
           <div id="sttHealthWarning" class="hidden bg-amber-950/40 border border-amber-600/50 rounded-xl px-3 py-2 text-[11px] text-amber-300 leading-snug">
             <i class="fa-solid fa-triangle-exclamation mr-1"></i>
             <span id="sttHealthWarningText">음성이 인식되지 않고 있습니다. 마이크 권한과 인터넷 연결을 확인해 주세요. (안전을 위해 위의 '원본 음성 백업'을 켜는 것을 권장합니다)</span>
+          </div>
+
+          <!-- 🎧 정밀 전사(재전사): 녹음 종료 후 선택한 Provider로 고정밀 transcript 생성 -->
+          <div class="flex items-center justify-between bg-brand-dark/60 border border-brand-accent/30 rounded-xl px-3 py-2">
+            <div class="flex flex-col pr-2 min-w-0">
+              <span class="text-[11px] font-bold text-slate-200 flex items-center">
+                <i class="fa-solid fa-headphones-simple text-cyan-400 mr-1.5"></i> 정밀 전사(재전사)
+              </span>
+              <span id="transcriptionProviderStatus" class="text-[10px] text-slate-500 leading-snug mt-0.5 truncate">방식: 실시간 STT만 사용 (⚙️ 설정에서 변경)</span>
+            </div>
+            <button id="startRefinedTranscriptionBtn" class="flex-shrink-0 px-3 py-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-[11px] font-bold border border-cyan-500/30 transition-all">
+              <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>정밀 전사 시작
+            </button>
           </div>
 
           <div class="flex items-center justify-between space-x-2">
@@ -543,6 +577,22 @@
     </div>
   </div>
 
+  <!-- 녹음 동의 안내 모달 -->
+  <div id="recordConsentModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div class="bg-brand-card border-2 border-amber-500/40 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4 text-center">
+      <div class="w-12 h-12 mx-auto rounded-full bg-amber-500/10 border border-amber-500/40 flex items-center justify-center">
+        <i class="fa-solid fa-microphone-lines text-amber-400 text-xl"></i>
+      </div>
+      <p class="text-sm text-slate-200 leading-relaxed">
+        현장 컨설팅 내용을 기록하기 전에<br>참석자에게 녹음 사실을 안내했는지 확인해 주세요.
+      </p>
+      <div class="flex flex-col space-y-2">
+        <button onclick="confirmRecordConsent()" class="w-full py-2.5 px-3 rounded-xl bg-brand-primary text-brand-dark font-bold text-sm shadow-md shadow-brand-primary/20">확인 후 녹음 시작</button>
+        <button onclick="cancelRecordConsent()" class="w-full py-2 px-3 rounded-xl bg-brand-dark border border-brand-accent text-slate-400 text-xs font-semibold">취소</button>
+      </div>
+    </div>
+  </div>
+
   <!-- AI/전사 설정 모달 창 -->
   <div id="aiSettingsModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="bg-brand-card border border-brand-accent/30 rounded-2xl w-full max-w-md p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
@@ -684,7 +734,14 @@
       briefing: null,
 
       // 이전 회차 이행 점검표
-      historyChecklist: []
+      historyChecklist: [],
+
+      // 중요/지적사항 북마크 (녹음 경과시간 기준 타임스탬프)
+      bookmarks: [],
+
+      // 정밀 전사 결과 (원본/보정본은 별도로 finalTranscript, refinedTranscript에 보관)
+      refinedTranscript: "",
+      transcriptionProvider: null
     };
 
     // 자동 저장 방지 락 (의사결정 완료 전 오버라이트 방지)
@@ -755,7 +812,11 @@
       get modalArea() { return document.getElementById('modalArea'); },
       get modalCheck() { return document.getElementById('modalCheck'); },
       get modalAction() { return document.getElementById('modalAction'); },
-      get batterySaveBtn() { return document.getElementById('batterySaveBtn'); }
+      get batterySaveBtn() { return document.getElementById('batterySaveBtn'); },
+      get bookmarkCountBadge() { return document.getElementById('bookmarkCountBadge'); },
+      get recordConsentModal() { return document.getElementById('recordConsentModal'); },
+      get transcriptionProviderStatus() { return document.getElementById('transcriptionProviderStatus'); },
+      get startRefinedTranscriptionBtn() { return document.getElementById('startRefinedTranscriptionBtn'); }
     };
 
     // --- TOAST NOTIFICATION ---
@@ -780,8 +841,11 @@
 
     // --- IndexedDB STORAGE HELPER ENGINE ---
     const DB_NAME = 'HACCP_Consulting_DB';
-    const DB_VERSION = 1;
+    // V2: 'drafts'(기존 세션/드래프트 저장소)는 그대로 두고, 원본 음성 chunk를 위한
+    // 'audioChunks' object store를 추가한다(V1 데이터는 손대지 않는 additive migration).
+    const DB_VERSION = 2;
     const STORE_NAME = 'drafts';
+    const AUDIO_STORE_NAME = 'audioChunks';
 
     function initDB() {
       return new Promise((resolve, reject) => {
@@ -793,7 +857,51 @@
           if (!db.objectStoreNames.contains(STORE_NAME)) {
             db.createObjectStore(STORE_NAME);
           }
+          if (!db.objectStoreNames.contains(AUDIO_STORE_NAME)) {
+            const audioStore = db.createObjectStore(AUDIO_STORE_NAME, { keyPath: 'id' });
+            audioStore.createIndex('sessionId', 'sessionId', { unique: false });
+          }
         };
+      });
+    }
+
+    // --- AUDIO CHUNK PERSISTENCE (녹음 안정화: 거대한 메모리 Blob 대신 30~60초 chunk를 즉시 IndexedDB에 저장) ---
+    function saveAudioChunkToDB(sessionId, chunkNo, blob, mimeType, timestampStart, timestampEnd) {
+      return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+          const store = tx.objectStore(AUDIO_STORE_NAME);
+          const req = store.put({
+            id: `${sessionId}_${String(chunkNo).padStart(5, '0')}`,
+            sessionId, chunkNo, timestampStart, timestampEnd, mimeType, blob
+          });
+          req.onsuccess = () => resolve();
+          req.onerror = (e) => reject(e);
+        });
+      });
+    }
+
+    function getAudioChunksForSession(sessionId) {
+      return initDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(AUDIO_STORE_NAME, 'readonly');
+          const store = tx.objectStore(AUDIO_STORE_NAME);
+          const index = store.index('sessionId');
+          const req = index.getAll(IDBKeyRange.only(sessionId));
+          req.onsuccess = () => resolve((req.result || []).sort((a, b) => a.chunkNo - b.chunkNo));
+          req.onerror = (e) => reject(e);
+        });
+      });
+    }
+
+    function deleteAudioChunksForSession(sessionId) {
+      return getAudioChunksForSession(sessionId).then(chunks => {
+        return initDB().then(db => {
+          const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+          const store = tx.objectStore(AUDIO_STORE_NAME);
+          chunks.forEach(c => store.delete(c.id));
+          return new Promise((resolve) => { tx.oncomplete = () => resolve(); tx.onerror = () => resolve(); });
+        });
       });
     }
 
@@ -1191,6 +1299,39 @@
       }
     };
 
+    // --- BOOKMARKS ([중요]/[지적사항]) ---
+    function renderBookmarkBadge() {
+      const badge = DOM.bookmarkCountBadge;
+      if (!badge) return;
+      const count = (state.bookmarks || []).length;
+      if (count > 0) {
+        badge.textContent = `북마크 ${count}건`;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    window.addBookmark = function(type) {
+      const label = type === 'finding' ? '[지적사항]' : '[중요]';
+      const elapsedMs = sttSessionStartedAt ? (Date.now() - sttSessionStartedAt) : 0;
+
+      // 타임스탬프 태그를 STT 로그에도 남겨 재전사/AI 분석 시 위치를 참고할 수 있게 한다.
+      if (DOM.sttLogArea) {
+        const tag = `${label}(${formatSttDuration(elapsedMs)}) `;
+        const textarea = DOM.sttLogArea;
+        const pos = textarea.selectionStart != null ? textarea.selectionStart : textarea.value.length;
+        textarea.value = textarea.value.slice(0, pos) + tag + textarea.value.slice(pos);
+        finalTranscript = textarea.value;
+      }
+
+      state.bookmarks = state.bookmarks || [];
+      state.bookmarks.push({ type, timestamp: elapsedMs, memo: "" });
+      renderBookmarkBadge();
+      scheduleSttAutoSave();
+      showToast(`${label} 북마크가 기록되었습니다. (${formatSttDuration(elapsedMs)})`, "success");
+    };
+
     async function saveCurrentSessionToHistory() {
       try {
         const sessionKey = `HACCP_SESSION_${state.targetOrg.replace(/\s+/g, "_")}_${state.consultingDate}`;
@@ -1218,7 +1359,9 @@
 
     window.resetAllData = function() {
       if (confirm('작성 중인 모든 내용(녹음, 사진, 표 등)이 초기화됩니다. 계속하시겠습니까?')) {
+        const audioSessionToClear = state.audioSessionId || currentAudioSessionId;
         removeDraftFromDB('HACCP_COACHING_DRAFT')
+          .then(() => (audioSessionToClear ? deleteAudioChunksForSession(audioSessionToClear).catch(() => {}) : null))
           .then(() => {
             localStorage.removeItem('HACCP_COACHING_DRAFT');
             window.location.reload();
@@ -1373,6 +1516,8 @@
       // AI Settings Modal Triggers
       DOM.aiSettingsBtn.addEventListener('click', () => window.openAiSettingsModal());
       DOM.aiSettingsManualBtn.addEventListener('click', () => window.openAiSettingsModal());
+      updateTranscriptionProviderStatusUI();
+      renderBookmarkBadge();
       
       // Battery Save Mode Button & Overlay
       if (DOM.batterySaveBtn) {
@@ -2073,9 +2218,18 @@
     let audioStream = null;
     let audioChunkTimer = null;
     let isChunkingRestart = false;
+    let currentAudioSessionId = null;
+    let audioChunkCounter = 0;
+    let audioChunkPersistFailCount = 0;
 
     async function startAudioRecording() {
       audioChunks = [];
+      audioChunkCounter = 0;
+      audioChunkPersistFailCount = 0;
+      // 이번 녹음 세션(정지까지)을 하나의 논리적 recording session으로 묶는 id.
+      // 정밀 전사 단계에서 이 id로 IndexedDB에 저장된 chunk들을 모두 불러와 합친다.
+      currentAudioSessionId = `AUD_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      state.audioSessionId = currentAudioSessionId;
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
         console.warn("오디오 백업: 이 환경은 getUserMedia/MediaRecorder를 지원하지 않습니다.");
@@ -2100,9 +2254,27 @@
         }
 
         mediaRecorder = new MediaRecorder(audioStream, options);
+        let chunkWindowStart = Date.now();
+
         mediaRecorder.ondataavailable = (event) => {
           if (event.data && event.data.size > 0) {
             audioChunks.push(event.data);
+
+            // 녹음 안정화: 거대한 메모리 Blob을 계속 들고 있지 않고, chunk가 도착하는 즉시
+            // IndexedDB에 영구 저장한다(브라우저 crash/PWA 재시작 후에도 복구 가능하도록).
+            const chunkNo = ++audioChunkCounter;
+            const tsStart = chunkWindowStart;
+            const tsEnd = Date.now();
+            chunkWindowStart = tsEnd;
+            const mime = mediaRecorder.mimeType || 'audio/webm';
+            const sessionIdAtCapture = currentAudioSessionId;
+            saveAudioChunkToDB(sessionIdAtCapture, chunkNo, event.data, mime, tsStart, tsEnd).catch((e) => {
+              audioChunkPersistFailCount++;
+              console.error("오디오 chunk 저장 실패:", e);
+              if (audioChunkPersistFailCount === 1) {
+                showToast("원본 음성 일부가 저장되지 못했습니다. 저장공간을 확인해 주세요.", "error");
+              }
+            });
           }
         };
 
@@ -2130,10 +2302,11 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
               }, 100);
-              showToast("원본 음성 파일 1개가 저장되었습니다.", "success");
+              showToast("원본 음성 파일 1개가 저장되었습니다. (IndexedDB에도 chunk로 보존됨 - 정밀 전사에 사용 가능)", "success");
             }
           } finally {
-            // 녹음 종료 시 메모리/마이크 정리 (다중 파일 분할 없이 1개로만 저장)
+            // 메모리상의 임시 배열/마이크만 정리한다. IndexedDB에 저장된 chunk는 그대로 남아
+            // "정밀 전사" 단계와 crash 복구에 계속 사용할 수 있다.
             audioChunks = [];
             if (audioStream) {
               audioStream.getTracks().forEach(track => track.stop());
@@ -2142,10 +2315,10 @@
           }
         };
 
-        // timeslice(15초)를 주어 데이터를 주기적으로 모아두면 장시간 녹음에서도 안정적이다.
-        // 파일은 [녹음 정지] 시 단 1개로 합쳐 저장한다(기존의 10분마다 분할 다운로드 방식 제거).
+        // timeslice(15초)마다 chunk를 즉시 IndexedDB에 저장한다 - 장시간 녹음에서도 안정적이며
+        // 정지 시 다운로드하는 1개 파일은 기존 동작 그대로 유지한다(하위호환).
         mediaRecorder.start(15000);
-        console.log("오디오 백업 녹음 시작 (정지 시 1개 파일로 저장).");
+        console.log(`오디오 백업 녹음 시작 (session=${currentAudioSessionId}, chunk 단위 IndexedDB 저장 + 정지 시 1개 파일로도 저장).`);
       } catch (err) {
         console.warn("오디오 백업 시작 실패: ", err);
         showToast("마이크 접근 오류로 원본 음성 백업을 시작하지 못했습니다.", "info");
@@ -2338,8 +2511,12 @@
         // 원본 음성 백업은 사용자가 토글을 켠 경우에만 실행한다.
         // (기본은 꺼짐 — MediaRecorder가 마이크를 점유하면 일부 기기에서 STT 텍스트가
         //  안 나올 수 있어, 실시간 텍스트 변환을 최우선으로 보장하기 위함이다.)
+        // SpeechRecognition과 MediaRecorder가 동시에 getUserMedia를 요청하면 일부 Android
+        // 기기에서 마이크 초기화가 충돌할 수 있어, STT 엔진이 완전히 자리 잡을 시간을 살짝 준 뒤 시작한다.
         if (isAudioBackupEnabled() && (!mediaRecorder || mediaRecorder.state === 'inactive')) {
-          startAudioRecording();
+          setTimeout(() => {
+            if (sttUserIntent) startAudioRecording();
+          }, 400);
         }
 
         requestWakeLock();
@@ -2459,6 +2636,44 @@
       releaseWakeLock();
     }
 
+    // 녹음 동의 안내는 앱 실행당 최초 1회만 표시한다(법적 동의를 자동으로 가정하지 않되, 매번 방해하지 않음).
+    let recordingConsentGiven = false;
+
+    function beginRecordingAfterConsent() {
+      finalTranscript = DOM.sttLogArea.value || "";
+      // 이번 녹음 세션의 음성 미인식 감시 시작 (재시작마다 리셋되지 않도록 여기서 한 번만 건다)
+      sttEverGotResult = false;
+      sttRestartAttempts = 0;
+      sttCommitCount = 0;
+      recentFinalChunks = [];
+      sttUserIntent = true;
+      hideSttHealthWarning();
+      armSttHealthTimer();
+      startSttDurationClock();
+      try {
+        recognition.start();
+      } catch (_) {
+        // 직전 세션이 아직 정리되지 않은 경우 → 예약 경로로 넘긴다.
+        scheduleSttRestart();
+      }
+    }
+
+    window.confirmRecordConsent = function() {
+      recordingConsentGiven = true;
+      if (DOM.recordConsentModal) {
+        DOM.recordConsentModal.classList.remove('flex');
+        DOM.recordConsentModal.classList.add('hidden');
+      }
+      beginRecordingAfterConsent();
+    };
+
+    window.cancelRecordConsent = function() {
+      if (DOM.recordConsentModal) {
+        DOM.recordConsentModal.classList.remove('flex');
+        DOM.recordConsentModal.classList.add('hidden');
+      }
+    };
+
     DOM.sttRecordBtn.addEventListener('click', () => {
       if (!recognition) return;
 
@@ -2472,23 +2687,11 @@
         try { recognition.abort(); } catch (_) {}
         stopAudioRecording();
         stopRecordingState();
+      } else if (!recordingConsentGiven && DOM.recordConsentModal) {
+        DOM.recordConsentModal.classList.remove('hidden');
+        DOM.recordConsentModal.classList.add('flex');
       } else {
-        finalTranscript = DOM.sttLogArea.value || "";
-        // 이번 녹음 세션의 음성 미인식 감시 시작 (재시작마다 리셋되지 않도록 여기서 한 번만 건다)
-        sttEverGotResult = false;
-        sttRestartAttempts = 0;
-        sttCommitCount = 0;
-        recentFinalChunks = [];
-        sttUserIntent = true;
-        hideSttHealthWarning();
-        armSttHealthTimer();
-        startSttDurationClock();
-        try {
-          recognition.start();
-        } catch (_) {
-          // 직전 세션이 아직 정리되지 않은 경우 → 예약 경로로 넘긴다.
-          scheduleSttRestart();
-        }
+        beginRecordingAfterConsent();
       }
     });
 
@@ -2496,6 +2699,116 @@
     DOM.sttLogArea.addEventListener('input', (e) => {
       finalTranscript = e.target.value;
     });
+
+    // --- REFINED TRANSCRIPTION (정밀 전사) ---
+    function providerLabel(p) {
+      if (p === 'openai') return 'OpenAI Cloud';
+      if (p === 'voicebox') return 'Voicebox Local';
+      return '실시간 STT만 사용';
+    }
+
+    function updateTranscriptionProviderStatusUI() {
+      if (!DOM.transcriptionProviderStatus) return;
+      const provider = getTranscriptionProvider();
+      DOM.transcriptionProviderStatus.textContent = `방식: ${providerLabel(provider)} (⚙️ 설정에서 변경)`;
+    }
+
+    async function mergeAudioChunksForSession(sessionId) {
+      if (!sessionId) return null;
+      const chunks = await getAudioChunksForSession(sessionId);
+      if (!chunks || chunks.length === 0) return null;
+      const mimeType = chunks[0].mimeType || 'audio/webm';
+      return {
+        blob: new Blob(chunks.map(c => c.blob), { type: mimeType }),
+        mimeType
+      };
+    }
+
+    if (DOM.startRefinedTranscriptionBtn) {
+      DOM.startRefinedTranscriptionBtn.addEventListener('click', async () => {
+        const btn = DOM.startRefinedTranscriptionBtn;
+        const provider = getTranscriptionProvider();
+        const liveText = DOM.sttLogArea.value || finalTranscript || "";
+
+        if (!liveText.trim() && provider === 'browser') {
+          showToast("정밀 전사할 실시간 기록이 없습니다. 먼저 녹음해 주세요.", "error");
+          return;
+        }
+
+        btn.disabled = true;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin mr-1"></i>전사 중...`;
+
+        // 정밀 전사를 시작하기 전, 지금까지의 실시간(초벌) 기록을 반드시 보존한다.
+        state.liveTranscript = liveText;
+
+        try {
+          let result;
+
+          if (provider === 'browser') {
+            result = await TranscriptionProviders.browser.transcribe(liveText);
+          } else {
+            const sessionId = state.audioSessionId || currentAudioSessionId;
+            const merged = await mergeAudioChunksForSession(sessionId);
+            if (!merged) {
+              showToast("저장된 원본 음성이 없습니다. '원본 음성도 파일로 백업'을 켜고 다시 녹음해 주세요. 실시간 기록을 그대로 사용합니다.", "info");
+              result = await TranscriptionProviders.browser.transcribe(liveText);
+            } else if (provider === 'openai') {
+              const backendUrl = getBackendUrl();
+              if (!backendUrl) {
+                showToast("Backend 서버 주소가 설정되지 않아 실시간 기록을 사용합니다.", "info");
+                result = await TranscriptionProviders.browser.transcribe(liveText);
+              } else {
+                result = await TranscriptionProviders.openai.transcribe(merged.blob, { backendUrl, mimeType: merged.mimeType, language: 'ko' });
+              }
+            } else if (provider === 'voicebox') {
+              const voiceboxUrl = localStorage.getItem('HACCP_VOICEBOX_URL') || '';
+              if (!voiceboxUrl) {
+                showToast("Voicebox 서버 주소가 설정되지 않아 실시간 기록을 사용합니다.", "info");
+                result = await TranscriptionProviders.browser.transcribe(liveText);
+              } else {
+                try {
+                  result = await TranscriptionProviders.voicebox.transcribe(merged.blob, { voiceboxUrl });
+                } catch (voiceboxErr) {
+                  console.warn("Voicebox 전사 실패, 폴백 시도:", voiceboxErr);
+                  const backendUrl = getBackendUrl();
+                  if (backendUrl) {
+                    showToast("Voicebox 연결 실패 - OpenAI로 자동 전환합니다.", "info");
+                    result = await TranscriptionProviders.openai.transcribe(merged.blob, { backendUrl, mimeType: merged.mimeType, language: 'ko' });
+                  } else {
+                    showToast("Voicebox 연결 실패 - 실시간 기록을 사용합니다.", "info");
+                    result = await TranscriptionProviders.browser.transcribe(liveText);
+                  }
+                }
+              }
+            } else {
+              result = await TranscriptionProviders.browser.transcribe(liveText);
+            }
+          }
+
+          state.refinedTranscript = result.text || liveText;
+          state.transcriptionProvider = result.provider;
+
+          // HACCP 전문용어 로컬 보정 (원본/보정본 둘 다 보관)
+          const correction = (typeof correctHaccpTerminology === 'function')
+            ? correctHaccpTerminology(state.refinedTranscript)
+            : { correctedText: state.refinedTranscript };
+
+          DOM.sttLogArea.value = correction.correctedText;
+          finalTranscript = correction.correctedText;
+          state.refinedTranscript = correction.correctedText;
+          scheduleSttAutoSave();
+
+          showToast(`정밀 전사가 완료되었습니다 (${providerLabel(result.provider)}). 용어 보정도 함께 적용되었습니다.`, "success");
+        } catch (err) {
+          console.error("정밀 전사 실패:", err);
+          showToast(`정밀 전사에 실패했습니다: ${err.message}. 실시간 기록은 그대로 보존되어 있습니다.`, "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      });
+    }
 
     // 원본 음성 백업 토글: 사용자의 선택을 기억한다.
     (function initAudioBackupToggle() {
@@ -2733,8 +3046,13 @@
       DOM.voiceboxUrlInput.value = localStorage.getItem('HACCP_VOICEBOX_URL') || "";
       const provider = getTranscriptionProvider();
       const radios = document.getElementsByName('transcriptionProviderRadio');
-      radios.forEach((r) => { r.checked = (r.value === provider); r.onchange = updateVoiceboxUrlVisibility; });
+      radios.forEach((r) => {
+        r.checked = (r.value === provider);
+        r.onchange = () => { updateVoiceboxUrlVisibility(); if (r.value === 'voicebox' && r.checked) refreshVoiceboxStatusText(); };
+      });
       updateVoiceboxUrlVisibility();
+      if (DOM.voiceboxUrlInput) DOM.voiceboxUrlInput.onchange = refreshVoiceboxStatusText;
+      if (provider === 'voicebox') refreshVoiceboxStatusText();
       DOM.aiSettingsModal.classList.remove('hidden');
       DOM.aiSettingsModal.classList.add('flex');
     };
@@ -2765,9 +3083,23 @@
       // 구버전(칩섭/CheapSub) API Key 흔적 정리
       purgeLegacyCheapSubKeys();
 
+      updateTranscriptionProviderStatusUI();
       showToast("설정이 저장되었습니다. (API Key는 이 기기에 저장되지 않습니다)", "success");
       window.closeAiSettingsModal();
     };
+
+    async function refreshVoiceboxStatusText() {
+      const el = document.getElementById('voiceboxStatusText');
+      if (!el || !DOM.voiceboxUrlInput) return;
+      const url = DOM.voiceboxUrlInput.value.trim();
+      if (!url) {
+        el.textContent = '상태: 미설정';
+        return;
+      }
+      el.textContent = '상태: 확인 중...';
+      const status = await TranscriptionProviders.checkVoiceboxStatus(url);
+      el.textContent = `상태: ${status}`;
+    }
 
     window.confirmSttInsert = function() {
       const areaVal = DOM.modalArea.value.trim() || "기타 현장 코칭";
