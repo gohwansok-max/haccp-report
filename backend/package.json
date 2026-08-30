@@ -1,0 +1,17 @@
+{
+  "name": "haccp-report-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HACCP Report V2 - OpenAI 연동 Backend (프론트엔드는 GitHub Pages 정적 호스팅 유지, 이 폴더만 별도 배포)",
+  "main": "api/health.js",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "openai": "^4.77.0",
+    "formidable": "^3.5.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
