@@ -151,7 +151,7 @@ V2에서 추가되는 필드(기존 필드는 삭제하지 않고 그대로 유�
 | 이름 | 필수 | 설명 |
 |---|---|---|
 | `OPENAI_API_KEY` | ✅ | OpenAI 공식 API Key. Backend 환경에만 존재 |
-| `OPENAI_MODEL` | - | AI 분석 모델 (기본 `gpt-4.1`) |
+| `OPENAI_MODEL` | - | AI 분석 모델 (기본 `gpt-5.6-sol`) |
 | `OPENAI_TRANSCRIBE_MODEL` | - | 정밀 전사 모델 (기본 `gpt-4o-transcribe`) |
 | `ALLOWED_ORIGINS` | - | CORS 허용 Origin, 쉼표 구분 (기본 `*`) |
 | `MAX_AUDIO_UPLOAD_BYTES` | - | 오디오 업로드 최대 크기 (기본 25MB) |

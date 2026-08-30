@@ -6,7 +6,7 @@ function getConfig() {
   return {
     apiKey: process.env.OPENAI_API_KEY || '',
     // AI 분석(HACCP 지적사항 추출)에 사용할 모델
-    analyzeModel: process.env.OPENAI_MODEL || 'gpt-4.1',
+    analyzeModel: process.env.OPENAI_MODEL || 'gpt-5.6-sol',
     // 오디오 정밀 전사에 사용할 모델 (OpenAI 공식 Transcription 모델)
     transcribeModel: process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-transcribe',
     // 쉼표로 구분된 허용 Origin 목록. "*"이면 전체 허용(개발/개인 사용 기본값).
