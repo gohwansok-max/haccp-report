@@ -465,6 +465,19 @@
       </div>
     </section>
 
+    <!-- AI 추출 지적사항 검토 (AI Finding Review) - 승인한 항목만 점검표에 반영된다 -->
+    <section id="findingReviewSection" class="hidden bg-brand-card border-2 border-violet-500/30 rounded-2xl p-5 shadow-xl space-y-3">
+      <div class="flex items-center justify-between border-b border-brand-accent/30 pb-2">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-list-check text-violet-400"></i>
+          <h2 class="text-sm font-bold text-white tracking-wide">AI 추출 지적사항 검토</h2>
+        </div>
+        <span id="findingReviewCount" class="text-[10px] text-slate-400 bg-brand-dark px-2 py-0.5 rounded-full border border-brand-accent/30"></span>
+      </div>
+      <p class="text-[11px] text-slate-500 leading-relaxed">AI가 추출한 지적사항입니다. 필요하면 내용을 수정한 뒤 [보고서 반영]을 눌러야 점검표에 추가됩니다. 반영하지 않으면 보고서에 포함되지 않습니다.</p>
+      <div id="findingReviewList" class="space-y-3"></div>
+    </section>
+
     <!-- 하단: 정형화 데이터 편집 테이블 -->
     <section class="bg-brand-card border border-brand-accent/20 rounded-2xl p-5 shadow-xl">
       <div class="flex items-center justify-between mb-4 border-b border-brand-accent/30 pb-2">
@@ -741,7 +754,10 @@
 
       // 정밀 전사 결과 (원본/보정본은 별도로 finalTranscript, refinedTranscript에 보관)
       refinedTranscript: "",
-      transcriptionProvider: null
+      transcriptionProvider: null,
+
+      // AI가 추출했지만 아직 컨설턴트가 검토/승인하지 않은 지적사항 (V2 스펙 19장 AI Finding Review)
+      findings: []
     };
 
     // 자동 저장 방지 락 (의사결정 완료 전 오버라이트 방지)
@@ -945,6 +961,7 @@
     function autoSaveDraft() {
       if (!isSaveReady) return;
       const draft = {
+        schemaVersion: 2,
         targetOrg: state.targetOrg,
         consultingDate: state.consultingDate,
         timeStart: state.timeStart,
@@ -958,9 +975,17 @@
         sttLog: DOM.sttLogArea ? DOM.sttLogArea.value : "",
         briefing: state.briefing || null,
         capturedPhotos: state.capturedPhotos || [],
-        historyChecklist: state.historyChecklist || []
+        historyChecklist: state.historyChecklist || [],
+        // --- V2 추가 필드 (additive - V1 리더는 몰라도 무해) ---
+        bookmarks: state.bookmarks || [],
+        findings: state.findings || [],
+        refinedTranscript: state.refinedTranscript || "",
+        liveTranscript: state.liveTranscript || "",
+        transcriptionProvider: state.transcriptionProvider || null,
+        audioSessionId: state.audioSessionId || null,
+        updatedAt: new Date().toISOString()
       };
-      
+
       saveDraftToDB('HACCP_COACHING_DRAFT', draft)
         .then(() => {
           showAutoSaveIndicator();
@@ -1059,7 +1084,17 @@
       state.opinionSummary = draft.opinionSummary || "";
       state.opinionNextPlan = draft.opinionNextPlan || "";
       state.historyChecklist = draft.historyChecklist || [];
-      
+
+      // --- V2 필드 복원 (V1 draft에는 없을 수 있음 - 없으면 기본값) ---
+      state.bookmarks = draft.bookmarks || [];
+      state.findings = draft.findings || [];
+      state.refinedTranscript = draft.refinedTranscript || "";
+      state.liveTranscript = draft.liveTranscript || "";
+      state.transcriptionProvider = draft.transcriptionProvider || null;
+      state.audioSessionId = draft.audioSessionId || null;
+      renderBookmarkBadge();
+      renderFindingReview();
+
       if (draft.briefing) {
         state.briefing = draft.briefing;
         renderBriefingCard(draft.briefing);
@@ -1092,7 +1127,8 @@
       }
 
       if (draft.capturedPhotos) {
-        state.capturedPhotos = draft.capturedPhotos;
+        // V1은 문자열(base64 dataUrl) 배열, V2는 객체 배열 - 로드 시 즉시 객체로 정규화한다.
+        state.capturedPhotos = draft.capturedPhotos.map(normalizePhotoRecord);
         renderThumbnails();
       }
       
@@ -1201,11 +1237,12 @@
         const tr = document.createElement('tr');
         tr.className = "hover:bg-brand-accent/10 transition-colors duration-150 border-b border-brand-accent/10 text-slate-300";
         
-        const statuses = ["완료", "미이행", "보완중"];
+        const statuses = ["완료", "보완중", "미이행", "확인 필요"];
         const statusColors = {
           "완료": "text-green-400 focus:ring-green-400",
           "미이행": "text-red-400 focus:ring-red-400",
-          "보완중": "text-yellow-400 focus:ring-yellow-400"
+          "보완중": "text-yellow-400 focus:ring-yellow-400",
+          "확인 필요": "text-amber-400 focus:ring-amber-400"
         };
 
         let radioGroupHtml = `<div class="flex items-center justify-center space-x-3 py-1">`;
@@ -1336,6 +1373,7 @@
       try {
         const sessionKey = `HACCP_SESSION_${state.targetOrg.replace(/\s+/g, "_")}_${state.consultingDate}`;
         const sessionData = {
+          schemaVersion: 2,
           targetOrg: state.targetOrg,
           consultingDate: state.consultingDate,
           timeStart: state.timeStart,
@@ -1348,7 +1386,14 @@
           opinionNextPlan: state.opinionNextPlan,
           sttLog: DOM.sttLogArea ? DOM.sttLogArea.value : "",
           briefing: state.briefing || null,
-          capturedPhotos: state.capturedPhotos || []
+          capturedPhotos: state.capturedPhotos || [],
+          bookmarks: state.bookmarks || [],
+          findings: state.findings || [],
+          refinedTranscript: state.refinedTranscript || "",
+          liveTranscript: state.liveTranscript || "",
+          transcriptionProvider: state.transcriptionProvider || null,
+          audioSessionId: state.audioSessionId || null,
+          updatedAt: new Date().toISOString()
         };
         await saveDraftToDB(sessionKey, sessionData);
         console.log(`Saved session ${sessionKey} to IndexedDB history.`);
@@ -1577,21 +1622,41 @@
     }
 
     // --- TABLE RENDER LOGIC ---
+    // requirementType 4단계 (V2 스펙 16장): 법적 의무 / 인증 요구사항 / 실무 권장사항 / 확인 필요
+    const REQUIREMENT_TYPE_META = {
+      LEGAL: { label: '법적 의무', cls: 'bg-red-500/15 text-red-300 border-red-500/40' },
+      CERTIFICATION: { label: '인증 요구', cls: 'bg-blue-500/15 text-blue-300 border-blue-500/40' },
+      RECOMMENDATION: { label: '권장사항', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' },
+      VERIFY: { label: '확인 필요', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' }
+    };
+
+    function requirementTypeSelectHtml(index, type) {
+      const current = REQUIREMENT_TYPE_META[type] ? type : 'VERIFY';
+      const options = Object.keys(REQUIREMENT_TYPE_META).map((key) => {
+        const sel = key === current ? 'selected' : '';
+        return `<option value="${key}" ${sel}>${REQUIREMENT_TYPE_META[key].label}</option>`;
+      }).join('');
+      const meta = REQUIREMENT_TYPE_META[current];
+      return `<select onchange="updateCell(${index}, 'requirementType', this.value)" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full border outline-none cursor-pointer ${meta.cls}">${options}</select>`;
+    }
+
     function renderTables() {
       DOM.desktopTableBody.innerHTML = "";
       DOM.mobileCardContainer.innerHTML = "";
-      
+
       state.tableData.forEach((row, index) => {
         // Adjust no sequentially
         row.no = index + 1;
-        
+        if (!row.requirementType) row.requirementType = 'VERIFY';
+
         // 1. Desktop Row
         const tr = document.createElement('tr');
         tr.className = "hover:bg-brand-accent/10 transition-colors duration-150 border-b border-brand-accent/10 text-slate-300";
         tr.innerHTML = `
           <td class="p-3 text-center font-bold text-slate-400">${row.no}</td>
           <td class="p-3">
-            <input type="text" value="${escapeHtml(row.area)}" onchange="updateCell(${index}, 'area', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white">
+            <input type="text" value="${escapeHtml(row.area)}" onchange="updateCell(${index}, 'area', this.value)" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white mb-1.5">
+            ${requirementTypeSelectHtml(index, row.requirementType)}
           </td>
           <td class="p-3">
             <textarea onchange="updateCell(${index}, 'check', this.value)" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'" class="w-full bg-transparent border-b border-transparent hover:border-slate-500 focus:border-brand-primary outline-none py-1 text-xs text-white resize-y" rows="2" style="overflow-y:hidden;">${escapeHtml(row.check)}</textarea>
@@ -1611,6 +1676,7 @@
         card.innerHTML = `
           <div class="flex justify-between items-center border-b border-brand-accent/20 pb-2">
             <span class="text-xs font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">No. ${row.no}</span>
+            ${requirementTypeSelectHtml(index, row.requirementType)}
             <button onclick="deleteRow(${index})" class="text-rose-400 hover:text-rose-600 p-1 text-sm"><i class="fa-solid fa-trash-can"></i></button>
           </div>
           <div class="space-y-2 text-xs">
@@ -1634,6 +1700,7 @@
 
     function updateCell(index, field, value) {
       state.tableData[index][field] = value;
+      if (field === 'requirementType') renderTables();
     }
 
     function deleteRow(index) {
@@ -1647,11 +1714,12 @@
         no: state.tableData.length + 1,
         area: "",
         check: "",
-        action: ""
+        action: "",
+        requirementType: "VERIFY"
       });
       renderTables();
       showToast("새 행이 추가되었습니다.", "success");
-      
+
       // Scroll to bottom of tables for mobile
       DOM.mobileCardContainer.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
     });
@@ -1896,11 +1964,11 @@
       ctx.fillText(timeStr, canvas.width - 30, canvas.height - 20);
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      state.capturedPhotos.push(dataUrl);
-      
+      state.capturedPhotos.push(createPhotoRecord(dataUrl));
+
       renderThumbnails();
       showToast("현장 사진이 16:9 비율 및 워터마크와 함께 캡처되었습니다.", "success");
-      
+
       // Auto-save to phone gallery instantly on capture
       downloadSinglePhoto(state.capturedPhotos.length - 1);
     });
@@ -1966,7 +2034,7 @@
             ctx.fillText(timeStr, canvas.width - 30, canvas.height - 20);
 
             const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            state.capturedPhotos.push(dataUrl);
+            state.capturedPhotos.push(createPhotoRecord(dataUrl));
 
             renderThumbnails();
             showToast("선택한 사진이 16:9 비율 및 워터마크와 함께 등록되었습니다.", "success");
@@ -1989,20 +2057,61 @@
       });
     }
 
+    // 사진-음성 연결(V2 스펙 14장): 촬영 시각과 STT 경과시간(sttTimestamp)을 함께 기록해
+    // AI 분석 시 촬영 시점 전후 발언을 참고할 수 있게 한다. V1은 문자열(dataUrl)만 저장했으므로
+    // 어디서 로드되든 이 두 함수로 정규화한다.
+    let photoIdCounter = 0;
+    function createPhotoRecord(dataUrl) {
+      const elapsedMs = sttSessionStartedAt ? (Date.now() - sttSessionStartedAt) : null;
+      return {
+        id: `photo_${Date.now()}_${(++photoIdCounter)}`,
+        dataUrl,
+        timestamp: new Date().toISOString(),
+        sttTimestamp: elapsedMs,
+        area: '',
+        memo: ''
+      };
+    }
+
+    function normalizePhotoRecord(p) {
+      if (typeof p === 'string') {
+        return { id: `photo_legacy_${++photoIdCounter}`, dataUrl: p, timestamp: null, sttTimestamp: null, area: '', memo: '' };
+      }
+      if (p && typeof p === 'object') {
+        return {
+          id: p.id || `photo_${++photoIdCounter}`,
+          dataUrl: p.dataUrl || '',
+          timestamp: p.timestamp || null,
+          sttTimestamp: (p.sttTimestamp != null) ? p.sttTimestamp : null,
+          area: p.area || '',
+          memo: p.memo || ''
+        };
+      }
+      return { id: `photo_${++photoIdCounter}`, dataUrl: '', timestamp: null, sttTimestamp: null, area: '', memo: '' };
+    }
+
     function renderThumbnails() {
       DOM.photoThumbContainer.innerHTML = "";
-      
+
       if (state.capturedPhotos.length === 0) {
         DOM.photoThumbContainer.innerHTML = `<p class="text-[11px] text-slate-500 italic text-center w-full">촬영된 현장 사진이 없습니다.</p>`;
         return;
       }
 
       state.capturedPhotos.forEach((photo, index) => {
+        const p = normalizePhotoRecord(photo);
+        const timeBadge = (p.sttTimestamp != null) ? formatSttDuration(p.sttTimestamp) : '';
         const thumb = document.createElement('div');
         thumb.className = "flex-shrink-0 w-24 bg-brand-dark border border-brand-accent/50 rounded-lg overflow-hidden flex flex-col shadow-md";
         thumb.innerHTML = `
-          <img src="${photo}" class="w-full h-14 object-cover">
+          <div class="relative">
+            <img src="${p.dataUrl}" class="w-full h-14 object-cover">
+            ${timeBadge ? `<span class="absolute bottom-0.5 right-0.5 text-[8px] font-bold bg-black/60 text-cyan-300 px-1 rounded">${timeBadge}</span>` : ''}
+          </div>
           <div class="flex border-t border-brand-accent/30 h-8">
+            <button onclick="editPhotoMemo(${index})" class="flex-grow bg-brand-accent/20 hover:bg-brand-accent/40 text-slate-300 text-xs font-bold flex items-center justify-center border-r border-brand-accent/30 transition-all py-1.5" title="영역/메모 입력">
+              <i class="fa-solid fa-tag"></i>
+            </button>
             <button onclick="downloadSinglePhoto(${index})" class="flex-grow bg-brand-primary/10 hover:bg-brand-primary/30 text-brand-primary text-xs font-bold flex items-center justify-center border-r border-brand-accent/30 transition-all py-1.5" title="스마트폰 갤러리에 저장">
               <i class="fa-solid fa-download"></i>
             </button>
@@ -2021,24 +2130,39 @@
       showToast("사진이 삭제되었습니다.", "info");
     };
 
+    window.editPhotoMemo = function(index) {
+      const p = normalizePhotoRecord(state.capturedPhotos[index]);
+      const area = prompt("사진 영역/위치 (예: 냉장창고, 세척실 등)", p.area || "");
+      if (area === null) return;
+      const memo = prompt("메모 (선택)", p.memo || "");
+      p.area = area.trim();
+      p.memo = (memo || "").trim();
+      state.capturedPhotos[index] = p;
+      renderThumbnails();
+      autoSaveDraft();
+      showToast("사진 정보가 저장되었습니다.", "success");
+    };
+
     window.downloadSinglePhoto = function(index) {
       const photoData = state.capturedPhotos[index];
       if (!photoData) return;
-      
+      const p = normalizePhotoRecord(photoData);
+      if (!p.dataUrl) return;
+
       const a = document.createElement("a");
-      a.href = photoData;
-      
+      a.href = p.dataUrl;
+
       const rawDate = state.consultingDate || new Date().toISOString().split('T')[0];
       const dateStr = rawDate.replace(/-/g, "");
       const orgName = (state.targetOrg || "HACCP").replace(/\s+/g, "_");
       a.download = `HACCP_Photo_${orgName}_${dateStr}_${index + 1}.jpg`;
-      
+
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
         document.body.removeChild(a);
       }, 100);
-      
+
       showToast(`사진 ${index + 1}이 스마트폰 갤러리에 저장(다운로드)되었습니다.`, "success");
     };
 
@@ -3382,6 +3506,99 @@
       return { purpose, tableData, summary, nextPlan, briefing, historyChecklist: [] };
     }
 
+    // --- AI FINDING REVIEW (V2 스펙 19장): AI 제안 → 컨설턴트 검토/수정 → 승인해야만 점검표에 반영 ---
+    const EVIDENCE_TYPE_LABEL = { interview_statement: '인터뷰 진술', objective_evidence: '객관적 증거', unclear: '구분 불가' };
+    const RISK_LEVEL_LABEL = { LOW: 'text-slate-400', MEDIUM: 'text-amber-400', HIGH: 'text-red-400' };
+
+    function renderFindingReview() {
+      const list = document.getElementById('findingReviewList');
+      const section = document.getElementById('findingReviewSection');
+      const countEl = document.getElementById('findingReviewCount');
+      if (!list || !section) return;
+
+      const findings = state.findings || [];
+      if (findings.length === 0) {
+        section.classList.add('hidden');
+        list.innerHTML = '';
+        return;
+      }
+      section.classList.remove('hidden');
+      if (countEl) countEl.textContent = `검토 대기 ${findings.length}건`;
+      list.innerHTML = '';
+
+      findings.forEach((f, idx) => {
+        const meta = REQUIREMENT_TYPE_META[f.requirementType] || REQUIREMENT_TYPE_META.VERIFY;
+        const riskCls = RISK_LEVEL_LABEL[f.riskLevel] || RISK_LEVEL_LABEL.MEDIUM;
+        const evidenceLabel = EVIDENCE_TYPE_LABEL[f.evidenceType] || EVIDENCE_TYPE_LABEL.unclear;
+
+        const card = document.createElement('div');
+        card.className = "bg-brand-dark/50 border border-brand-accent/20 rounded-xl p-3 space-y-2";
+        card.innerHTML = `
+          <div class="flex items-center justify-between flex-wrap gap-1.5">
+            <span class="text-xs font-bold text-violet-300 bg-violet-500/10 px-2 py-0.5 rounded-full">지적사항 ${idx + 1}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${meta.cls}">${meta.label}</span>
+              <span class="text-[10px] font-bold ${riskCls}">위험도: ${escapeHtml(f.riskLevel || 'MEDIUM')}</span>
+            </div>
+          </div>
+          <div class="text-[11px] space-y-1.5">
+            <div>
+              <span class="text-slate-500 font-semibold">분야: </span>
+              <input type="text" value="${escapeHtml(f.area || '')}" onchange="updateFindingField(${idx}, 'area', this.value)" class="bg-transparent border-b border-brand-accent/30 focus:border-brand-primary outline-none text-white w-2/3">
+            </div>
+            <div>
+              <span class="text-slate-500 font-semibold block mb-0.5">확인사항</span>
+              <textarea rows="2" onchange="updateFindingField(${idx}, 'finding', this.value)" class="w-full bg-brand-card border border-brand-accent/40 rounded p-1.5 text-white outline-none focus:border-brand-primary">${escapeHtml(f.finding || '')}</textarea>
+            </div>
+            <div>
+              <span class="text-slate-500 font-semibold block mb-0.5">근거 (${evidenceLabel}${f.sourceTimestamp ? ' · ' + escapeHtml(String(f.sourceTimestamp)) : ''})</span>
+              <textarea rows="2" onchange="updateFindingField(${idx}, 'evidence', this.value)" class="w-full bg-brand-card border border-brand-accent/40 rounded p-1.5 text-slate-300 outline-none focus:border-brand-primary">${escapeHtml(f.evidence || '')}</textarea>
+            </div>
+            <div>
+              <span class="text-slate-500 font-semibold block mb-0.5">개선지도</span>
+              <textarea rows="2" onchange="updateFindingField(${idx}, 'recommendation', this.value)" class="w-full bg-brand-card border border-brand-accent/40 rounded p-1.5 text-brand-primary outline-none focus:border-brand-primary">${escapeHtml(f.recommendation || '')}</textarea>
+            </div>
+            ${f.verificationNeeded ? `<div class="text-amber-300"><span class="font-semibold">추가 확인 필요: </span>${escapeHtml(f.verificationNeeded)}</div>` : ''}
+          </div>
+          <div class="flex justify-end gap-2 pt-1">
+            <button onclick="rejectFinding(${idx})" class="px-3 py-1.5 rounded-lg bg-brand-dark border border-brand-accent text-slate-400 hover:text-white text-[11px] font-semibold">제외</button>
+            <button onclick="approveFinding(${idx})" class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-bold">보고서 반영</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    window.updateFindingField = function(idx, field, value) {
+      if (state.findings && state.findings[idx]) state.findings[idx][field] = value;
+    };
+
+    window.approveFinding = function(idx) {
+      const f = state.findings && state.findings[idx];
+      if (!f) return;
+      state.tableData.push({
+        no: state.tableData.length + 1,
+        area: f.area || '기타 현장 코칭',
+        check: f.finding || '',
+        action: f.recommendation || '해당 사항 보완 조치 권고',
+        requirementType: f.requirementType || 'VERIFY',
+        linkedPhotoIds: f.linkedPhotoIds || []
+      });
+      state.findings.splice(idx, 1);
+      renderTables();
+      renderFindingReview();
+      autoSaveDraft();
+      showToast("점검표에 반영되었습니다.", "success");
+    };
+
+    window.rejectFinding = function(idx) {
+      if (!state.findings || !state.findings[idx]) return;
+      state.findings.splice(idx, 1);
+      renderFindingReview();
+      autoSaveDraft();
+      showToast("해당 지적사항을 제외했습니다.", "info");
+    };
+
     function applyAnalysisResult(data) {
       if (!data || typeof data !== 'object') {
         showToast("AI 분석 데이터가 유효하지 않아 로컬 복구 분석을 실행합니다.", "warning");
@@ -3406,25 +3623,30 @@
         state.purpose = humanizedData.purpose;
       }
       
-      if (humanizedData.tableData && Array.isArray(humanizedData.tableData)) {
-        if (state.tableData.length === 1 && !state.tableData[0].area && !state.tableData[0].check) {
-          state.tableData = [];
-        }
-        humanizedData.tableData.forEach(row => {
-          state.tableData.push({
-            no: state.tableData.length + 1,
-            area: row.area || "기타 현장 코칭",
-            check: row.check || "점검 내용 기록",
-            action: row.action || "해당 사항 보완 조치 권고"
-          });
-        });
-      } else if (humanizedData.area || humanizedData.check || humanizedData.action) {
-        state.tableData.push({
-          no: state.tableData.length + 1,
-          area: humanizedData.area || "기타 현장 코칭",
-          check: humanizedData.check || "점검 내용 기록",
-          action: humanizedData.action || "해당 사항 보완 조치 권고"
-        });
+      // AI 결과를 점검표에 바로 꽂지 않는다 - "AI 제안 → 컨설턴트 검토 → 승인 → 최종 보고서"
+      // 흐름을 지키기 위해 findings로 변환해 검토 대기열에 넣는다(V2 스펙 19장).
+      let findingsFromAi = Array.isArray(humanizedData.findings) ? humanizedData.findings : null;
+      if (!findingsFromAi && Array.isArray(humanizedData.tableData) && humanizedData.tableData.length > 0) {
+        // Backend가 findings를 못 준 경우(로컬 간이 분석 등)를 대비해 tableData로부터 findings를 합성한다.
+        findingsFromAi = humanizedData.tableData.map((row) => ({
+          area: row.area || "기타 현장 코칭",
+          category: row.area || "기타",
+          finding: row.check || "",
+          evidence: "",
+          evidenceType: "unclear",
+          sourceTimestamp: null,
+          riskLevel: "MEDIUM",
+          requirementType: row.requirementType || "VERIFY",
+          recommendation: row.action || "해당 사항 보완 조치 권고",
+          verificationNeeded: "",
+          linkedPhotoIds: [],
+          previousFindingId: null
+        }));
+      }
+      if (findingsFromAi && findingsFromAi.length > 0) {
+        state.findings = (state.findings || []).concat(findingsFromAi);
+        renderFindingReview();
+        showToast(`AI가 지적사항 ${findingsFromAi.length}건을 추출했습니다. 검토 후 반영해 주세요.`, "info");
       }
       renderTables();
 
@@ -3868,6 +4090,14 @@
         );
       }
 
+      // requirementType 4단계를 Word에서도 시각적으로 구분한다 (V2 스펙 16, 23장)
+      const REQUIREMENT_TYPE_DOC_META = {
+        LEGAL: { label: '[법적 의무]', fill: 'FEE2E2', color: 'B91C1C' },
+        CERTIFICATION: { label: '[인증 요구]', fill: 'DBEAFE', color: '1D4ED8' },
+        RECOMMENDATION: { label: '[권장사항]', fill: 'D1FAE5', color: '047857' },
+        VERIFY: { label: '[확인 필요]', fill: 'FEF3C7', color: 'B45309' }
+      };
+
       state.tableData.forEach((row) => {
         // Multi-line rendering helper inside table cells
         function createMultiLineParagraphs(text) {
@@ -3880,6 +4110,8 @@
           });
         }
 
+        const reqMeta = REQUIREMENT_TYPE_DOC_META[row.requirementType] || REQUIREMENT_TYPE_DOC_META.VERIFY;
+
         dataTableRows.push(
           new TableRow({
             children: [
@@ -3891,11 +4123,18 @@
               new TableCell({
                 width: { size: 27, type: WidthType.PERCENTAGE },
                 borders: cellBorders,
-                children: [new Paragraph({ children: [new TextRun({ text: row.area, size: 20, font: mainFont })] })]
+                children: [
+                  new Paragraph({
+                    spacing: { after: 40 },
+                    children: [new TextRun({ text: reqMeta.label, bold: true, size: 16, font: mainFont, color: reqMeta.color })]
+                  }),
+                  new Paragraph({ children: [new TextRun({ text: row.area, size: 20, font: mainFont })] })
+                ]
               }),
               new TableCell({
                 width: { size: 35, type: WidthType.PERCENTAGE },
                 borders: cellBorders,
+                shading: { fill: reqMeta.fill },
                 children: createMultiLineParagraphs(row.check)
               }),
               new TableCell({
@@ -4052,18 +4291,26 @@
 
         // Photo Grid inside Word: Build rows with 2 columns
         const photoCells = [];
-        for (let i = 0; i < state.capturedPhotos.length; i += 2) {
+        const photosForDoc = state.capturedPhotos.map(normalizePhotoRecord);
+        function photoCaption(no, p) {
+          const parts = [`사진 ${no}`];
+          if (p.sttTimestamp != null) parts.push(`관련 발언 시점: ${formatSttDuration(p.sttTimestamp)}`);
+          if (p.area) parts.push(p.area);
+          if (p.memo) parts.push(p.memo);
+          return parts.join(' · ');
+        }
+        for (let i = 0; i < photosForDoc.length; i += 2) {
           const rowChildren = [];
-          
+
           // Cell 1
-          const imgData1 = base64ToUint8Array(state.capturedPhotos[i]);
-          const dim1 = await getImageDimensions(state.capturedPhotos[i]);
+          const imgData1 = base64ToUint8Array(photosForDoc[i].dataUrl);
+          const dim1 = await getImageDimensions(photosForDoc[i].dataUrl);
           const aspect1 = dim1.w / dim1.h;
-          let w1 = 300; 
+          let w1 = 300;
           let h1 = w1 / aspect1;
-          if (h1 > 200) { 
-            h1 = 200; 
-            w1 = h1 * aspect1; 
+          if (h1 > 200) {
+            h1 = 200;
+            w1 = h1 * aspect1;
           }
 
           rowChildren.push(
@@ -4085,22 +4332,22 @@
                 new Paragraph({
                   alignment: AlignmentType.CENTER,
                   spacing: { after: 120 },
-                  children: [new TextRun({ text: `사진 ${i + 1}`, size: 18, bold: true, font: mainFont, color: "64748B" })]
+                  children: [new TextRun({ text: photoCaption(i + 1, photosForDoc[i]), size: 18, bold: true, font: mainFont, color: "64748B" })]
                 })
               ]
             })
           );
 
           // Cell 2 (or empty Cell if odd number of photos)
-          if (i + 1 < state.capturedPhotos.length) {
-            const imgData2 = base64ToUint8Array(state.capturedPhotos[i + 1]);
-            const dim2 = await getImageDimensions(state.capturedPhotos[i + 1]);
+          if (i + 1 < photosForDoc.length) {
+            const imgData2 = base64ToUint8Array(photosForDoc[i + 1].dataUrl);
+            const dim2 = await getImageDimensions(photosForDoc[i + 1].dataUrl);
             const aspect2 = dim2.w / dim2.h;
-            let w2 = 300; 
+            let w2 = 300;
             let h2 = w2 / aspect2;
-            if (h2 > 200) { 
-              h2 = 200; 
-              w2 = h2 * aspect2; 
+            if (h2 > 200) {
+              h2 = 200;
+              w2 = h2 * aspect2;
             }
 
             rowChildren.push(
@@ -4122,7 +4369,7 @@
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
                     spacing: { after: 120 },
-                    children: [new TextRun({ text: `사진 ${i + 2}`, size: 18, bold: true, font: mainFont, color: "64748B" })]
+                    children: [new TextRun({ text: photoCaption(i + 2, photosForDoc[i + 1]), size: 18, bold: true, font: mainFont, color: "64748B" })]
                   })
                 ]
               })
