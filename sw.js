@@ -1,9 +1,11 @@
-const CACHE_NAME = 'haccp-consultant-v6';
+const CACHE_NAME = 'haccp-consultant-v7';
 const ASSETS = [
   './index.html',
   './manifest.json',
   './icon.png',
   './quick-rules.js',
+  './haccp-dictionary.js',
+  './stt-providers.js',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js'
